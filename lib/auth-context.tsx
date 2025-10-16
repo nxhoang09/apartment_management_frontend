@@ -22,7 +22,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const API_URL = "http://localhost:3001"
+const API_URL = "http://localhost:3030"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -41,8 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (res.ok) {
           const data = await res.json()
-          setToken(data.accessToken)
-          setUser(data.user)
+          setToken(data.data.accessToken)
+          setUser(data.data.user)
         } else {
           setUser(null)
         }
@@ -74,11 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json()
-      setUser(data.user)
-      setToken(data.accessToken)
+      setUser(data.data.user)
+      setToken(data.data.accessToken)
 
-      if (data.user.role === "ADMIN") router.push("/admin")
-      else if (data.user.role === "USER") router.push("/resident")
+      if (data.data.user.role === "ADMIN") router.push("/admin")
+      else if (data.data.user.role === "USER") router.push("/resident")
       else router.push("/")
     } catch (error) {
       console.error("Login error:", error)

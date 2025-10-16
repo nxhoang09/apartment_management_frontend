@@ -8,5 +8,5 @@ export default function ResidentLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <ProtectedRoute allowedRoles={["RESIDENT"]}>{children}</ProtectedRoute>
+  return <ProtectedRoute allowedRoles={["USER"]}>{children}</ProtectedRoute>
 }
