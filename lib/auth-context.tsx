@@ -16,7 +16,7 @@ interface AuthContextType {
   token: string | null
   login: (email: string, password: string) => Promise<void>
   register: (username: string, email: string, password: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   isLoading: boolean
 }
 
@@ -30,26 +30,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
+  //Khi load trang, tự check và refresh token nếu cần
   useEffect(() => {
-    const storedToken = localStorage.getItem("token")
-    const storedUser = localStorage.getItem("user")
+    const initializeAuth = async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/refresh`, {
+          method: "POST",
+          credentials: "include", // gửi cookie refresh token
+        })
 
-    if (storedToken && storedUser) {
-      setToken(storedToken)
-      setUser(JSON.parse(storedUser))
+        if (res.ok) {
+          const data = await res.json()
+          setToken(data.accessToken)
+          setUser(data.user)
+        } else {
+          setUser(null)
+        }
+      } catch (err) {
+        console.error("Auth init failed:", err)
+        setUser(null)
+      } finally {
+        setIsLoading(false)
+      }
     }
-    setIsLoading(false)
+
+    initializeAuth()
   }, [])
 
+  //Login
   const login = async (email: string, password: string) => {
     try {
-      // console.log("API_URL =", API_URL);
-      const response = await fetch(`${API_URL}/auth/login`, {
+      setIsLoading(true)
+      const response = await fetch(`${API_URL}/auth/signin`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
+        credentials: "include", // cookie chứa refresh token
       })
 
       if (!response.ok) {
@@ -58,44 +74,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json()
+      setUser(data.user)
+      setToken(data.accessToken)
 
-    
-      const userData: User = {
-        id: data.user.id,
-        username: data.user.username,
-        email: data.user.email,
-        role: data.user.role,
-        createtime: data.user.createtime,
-      }
-
-      setToken(data.token)
-      setUser(userData)
-
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("user", JSON.stringify(userData))
-
-      
-      if (data.user.role === "ADMIN") {
-        router.push("/admin")
-      } else if (data.user.role === "RESIDENT") {
-        router.push("/resident")
-      } else {
-        router.push("/")
-      }
+      if (data.user.role === "ADMIN") router.push("/admin")
+      else if (data.user.role === "USER") router.push("/resident")
+      else router.push("/")
     } catch (error) {
       console.error("Login error:", error)
       throw error
+    } finally {
+      setIsLoading(false)
     }
   }
 
+  //Register (tự login sau đăng ký)
   const register = async (username: string, email: string, password: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/register`, {
+      setIsLoading(true)
+      const response = await fetch(`${API_URL}/auth/signup`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password }),
+        credentials: "include",
       })
 
       if (!response.ok) {
@@ -104,47 +105,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json()
-
-      
-      const userData: User = {
-        id: data.user.id,
-        username: data.user.username,
-        email: data.user.email,
-        role: data.user.role,
-        createtime: data.user.createtime,
-      }
-
-      setToken(data.token)
-      setUser(userData)
-
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("user", JSON.stringify(userData))
-
-      
+      setUser(data.user)
+      setToken(data.accessToken)
       router.push("/")
     } catch (error) {
       console.error("Register error:", error)
       throw error
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    setToken(null)
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    router.push("/login")
+  //Logout (xóa refresh token cookie ở backend)
+  const logout = async () => {
+    try {
+      await fetch(`${API_URL}/auth/signout`, {
+        method: "POST",
+        credentials: "include",
+      })
+    } catch (err) {
+      console.error("Logout error:", err)
+    } finally {
+      setUser(null)
+      setToken(null)
+      router.push("/login")
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isLoading }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, token, login, register, logout, isLoading }}>
+      {children}
+    </AuthContext.Provider>
   )
 }
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
+  if (context === undefined) throw new Error("useAuth must be used within an AuthProvider")
   return context
 }

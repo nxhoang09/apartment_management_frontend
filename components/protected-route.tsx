@@ -29,7 +29,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
         // Redirect based on user's actual role
         if (user.role === "ADMIN") {
           router.push("/admin")
-        } else if (user.role === "RESIDENT") {
+        } else if (user.role === "USER") {
           router.push("/resident")
         } else {
           router.push("/")
