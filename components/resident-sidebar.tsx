@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { Home, User, FileText, Bell, Settings, LogOut, ChevronLeft, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { useAuth } from "@/lib/auth-context"
 
 const menuItems = [
   {
@@ -18,7 +19,7 @@ const menuItems = [
     href: "/resident/profile",
     icon: User,
   },
-  {
+    {
     title: "Khai báo",
     href: "/resident/declarations",
     icon: FileText,
@@ -39,6 +40,7 @@ export function ResidentSidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { logout } = useAuth()
 
   return (
     <>
@@ -52,7 +54,12 @@ export function ResidentSidebar() {
       </button>
 
       {/* Mobile Overlay */}
-      {mobileOpen && <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setMobileOpen(false)} />}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <aside
@@ -77,7 +84,9 @@ export function ResidentSidebar() {
               className={cn("hidden lg:flex", collapsed && "mx-auto")}
               onClick={() => setCollapsed(!collapsed)}
             >
-              <ChevronLeft className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")} />
+              <ChevronLeft
+                className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")}
+              />
             </Button>
           </div>
 
@@ -122,17 +131,11 @@ export function ResidentSidebar() {
             })}
           </nav>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-border">
-            <Button
-              variant="ghost"
-              className={cn("w-full justify-start text-muted-foreground", collapsed && "justify-center px-0")}
-              asChild
-            >
-              <Link href="/login">
-                <LogOut className="h-5 w-5" />
-                {!collapsed && <span className="ml-3">Đăng xuất</span>}
-              </Link>
+          {/* Footer - Logout */}
+           <div className=" py-4 pr-2 border-t border-border flex justify-center  ">
+           <Button variant="ghost" size="lg" onClick={logout}>
+              <LogOut className="h-4 w-4 mr-2" />
+                Đăng xuất
             </Button>
           </div>
         </div>
