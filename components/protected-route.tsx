@@ -20,7 +20,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     if (!isLoading) {
       // Not authenticated - redirect to login
       if (!user) {
-        router.push("/login")
+        router.push("/auth/login")
         return
       }
 

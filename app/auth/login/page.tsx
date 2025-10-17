@@ -76,7 +76,7 @@ export default function LoginPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password">Mật khẩu</Label>
-                    <Link href="/forgot-password" className="text-sm text-primary hover:underline">
+                    <Link href="/auth/forgot-password" className="text-sm text-primary hover:underline">
                       Quên mật khẩu?
                     </Link>
                   </div>
@@ -94,13 +94,6 @@ export default function LoginPage() {
                   {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
                 </Button>
               </form>
-
-              <div className="mt-6 text-center text-sm">
-                <span className="text-muted-foreground">Chưa có tài khoản? </span>
-                <Link href="/register" className="text-primary hover:underline font-medium">
-                  Đăng ký ngay
-                </Link>
-              </div>
             </CardContent>
           </Card>
         </div>

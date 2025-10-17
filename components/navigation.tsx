@@ -78,13 +78,10 @@ export function Navigation() {
                 ) : (
                   <>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href="/login">
+                      <Link href="/auth/login">
                         <LogIn className="h-4 w-4 mr-2" />
                         Đăng nhập
                       </Link>
-                    </Button>
-                    <Button size="sm" asChild>
-                      <Link href="/register">Đăng ký</Link>
                     </Button>
                   </>
                 )}
@@ -165,14 +162,9 @@ export function Navigation() {
                     ) : (
                       <>
                         <Button variant="ghost" size="sm" asChild>
-                          <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                          <Link href="/auth/login" onClick={() => setMobileMenuOpen(false)}>
                             <LogIn className="h-4 w-4 mr-2" />
                             Đăng nhập
-                          </Link>
-                        </Button>
-                        <Button size="sm" asChild>
-                          <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                            Đăng ký
                           </Link>
                         </Button>
                       </>
