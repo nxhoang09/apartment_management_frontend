@@ -19,6 +19,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   forgotPassword: (email: string) => Promise<void>
+  verifyResetToken: (token: string) => Promise<void>
   resetPassword: (token: string, newPassword: string) => Promise<void>
   isLoading: boolean
 }
@@ -139,9 +140,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
     }
   }
+  //verify-reset-token
+const verifyResetToken = async (token: string) => {
+  try {
+    setIsLoading(true)
+    const data = await postJSON("/verify-reset-token", { token })
+    console.log("Verify token success:", data.data)
+    return data.data
+  } catch (error: any) {
+    console.error("Verify token error:", error)
+    throw new Error(error.message || "Token không hợp lệ hoặc đã hết hạn")
+  } finally {
+    setIsLoading(false)
+  }
+}
+
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, forgotPassword, resetPassword, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, forgotPassword, verifyResetToken,  resetPassword, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

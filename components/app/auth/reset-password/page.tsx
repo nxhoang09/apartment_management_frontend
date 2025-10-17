@@ -16,18 +16,42 @@ export default function ResetPasswordPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const token = searchParams.get("token") || ""
-  const { resetPassword } = useAuth()
+
+  const { verifyResetToken, resetPassword } = useAuth()
 
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [isVerified, setIsVerified] = useState(false)
+  const [isChecking, setIsChecking] = useState(true) // trạng thái đang verify token
 
+  //Kiểm tra token hợp lệ khi mở trang
   useEffect(() => {
-    if (!token) setError("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.")
+    const checkToken = async () => {
+      if (!token) {
+        setError("Liên kết không hợp lệ.")
+        setIsChecking(false)
+        return router.push("/auth/forgot-password")
+      }
+
+      try {
+        await verifyResetToken(token)
+        setIsVerified(true)
+      } catch (err: any) {
+        console.error("Token verify error:", err)
+        setError("Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.")
+        router.push("/auth/forgot-password")
+      } finally {
+        setIsChecking(false)
+      }
+    }
+
+    checkToken()
   }, [token])
 
+  //Xử lý đổi mật khẩu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -54,6 +78,28 @@ export default function ResetPasswordPage() {
     }
   }
 
+  //Đang kiểm tra token (chưa có kết quả)
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-gray-600">
+        <p>Đang xác minh liên kết đặt lại mật khẩu...</p>
+      </div>
+    )
+  }
+
+  // Token không hợp lệ
+  if (!isVerified) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-gray-600">
+        <p>Liên kết không hợp lệ hoặc đã hết hạn.</p>
+        <Button className="mt-4" onClick={() => router.push("/auth/forgot-password")}>
+          Gửi lại liên kết
+        </Button>
+      </div>
+    )
+  }
+
+  // Token hợp lệ — hiển thị form đặt lại mật khẩu
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
@@ -114,7 +160,7 @@ export default function ResetPasswordPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading || !token}>
+                <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Đang xử lý..." : "Đặt lại mật khẩu"}
                 </Button>
 
