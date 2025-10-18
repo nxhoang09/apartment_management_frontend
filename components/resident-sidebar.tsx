@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { Home, User, FileText, Bell, Settings, LogOut, ChevronLeft, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/context/auth-context"
 
 const menuItems = [
   {

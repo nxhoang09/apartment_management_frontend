@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { postJSON, API_URL } from "@/lib/api"
+import { postJSON, API_URL } from "@/lib/api/api"
 import { PowerSquare } from "lucide-react"
 
 interface User {
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const res = await fetch(`${API_URL}/refresh`, {
+        const res = await fetch(`${API_URL}/auth/refresh`, {
           method: "POST",
           credentials: "include",
         })
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true)
-      const data = await postJSON("/signin", { email, password })
+      const data = await postJSON("/auth/signin", { email, password })
       setUser(data.data.user)
       setToken(data.data.accessToken)
 
@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Đăng xuất
   const logout = async () => {
     try {
-      await postJSON("/signout", {})
+      await postJSON("/auth/signout", {})
     } catch (err) {
       console.error("Logout error:", err)
     } finally {
@@ -117,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const forgotPassword = async (email:string) =>{
     try{
       setIsLoading(true)
-      const data = await postJSON("/forgot-password",{email})
+      const data = await postJSON("/auth/forgot-password",{email})
       console.log("forgot password: ", data.data)
     } catch (error: any){
       console.error("Forgot password error:", error)
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (token: string, newPassword: string) =>{
     try{
        setIsLoading(true)
-      const data = await postJSON("/reset-password", { token, newPassword })
+      const data = await postJSON("/auth/reset-password", { token, newPassword })
       console.log("Reset password:", data.data)
     } catch (error: any) {
       console.error("Reset password error:", error)
@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 const verifyResetToken = async (token: string) => {
   try {
     setIsLoading(true)
-    const data = await postJSON("/verify-reset-token", { token })
+    const data = await postJSON("/auth/verify-reset-token", { token })
     console.log("Verify token success:", data.data)
     return data.data
   } catch (error: any) {
