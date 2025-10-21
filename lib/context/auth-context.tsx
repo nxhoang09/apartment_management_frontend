@@ -3,7 +3,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { postJSON, API_URL } from "@/lib/api/api"
-import { PowerSquare } from "lucide-react"
 
 interface User {
   id: number
@@ -32,7 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  // Khi load trang, tự refresh token nếu có cookie refresh
   useEffect(() => {
     const initializeAuth = async () => {
       try {
@@ -40,7 +38,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           method: "POST",
           credentials: "include",
         })
-
         if (!res.ok) throw new Error("Phiên đăng nhập hết hạn")
 
         const data = await res.json()
@@ -54,11 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoading(false)
       }
     }
-
     initializeAuth()
   }, [])
 
-  // Đăng nhập
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true)
@@ -78,29 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error: any) {
       console.error("Login error:", error)
-      throw new Error (error.message||"Đăng nhập thất bại")
+      throw new Error(error.message || "Đăng nhập thất bại")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Đăng ký (rồi tự login)
-  // const register = async (username: string, email: string, password: string) => {
-  //   try {
-  //     setIsLoading(true)
-  //     const data = await postJSON("/signup", { username, email, password })
-  //     setUser(data.data.user)
-  //     setToken(data.data.accessToken)
-  //     router.push("/")
-  //   } catch (error) {
-  //     console.error("Register error:", error)
-  //     throw error
-  //   } finally {
-  //     setIsLoading(false)
-  //   }
-  // }
-
-  // Đăng xuất
   const logout = async () => {
     try {
       await postJSON("/auth/signout", {})
@@ -113,13 +91,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  //forgot-password
-  const forgotPassword = async (email:string) =>{
-    try{
+  const forgotPassword = async (email: string) => {
+    try {
       setIsLoading(true)
-      const data = await postJSON("/auth/forgot-password",{email})
-      console.log("forgot password: ", data.data)
-    } catch (error: any){
+      const data = await postJSON("/auth/forgot-password", { email })
+      console.log("forgot password:", data.data)
+    } catch (error: any) {
       console.error("Forgot password error:", error)
       throw new Error(error.message || "Không thể gửi email khôi phục mật khẩu")
     } finally {
@@ -127,10 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  //reset-password
-  const resetPassword = async (token: string, newPassword: string) =>{
-    try{
-       setIsLoading(true)
+  const resetPassword = async (token: string, newPassword: string) => {
+    try {
+      setIsLoading(true)
       const data = await postJSON("/auth/reset-password", { token, newPassword })
       console.log("Reset password:", data.data)
     } catch (error: any) {
@@ -140,24 +116,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
     }
   }
-  //verify-reset-token
-const verifyResetToken = async (token: string) => {
-  try {
-    setIsLoading(true)
-    const data = await postJSON("/auth/verify-reset-token", { token })
-    console.log("Verify token success:", data.data)
-    return data.data
-  } catch (error: any) {
-    console.error("Verify token error:", error)
-    throw new Error(error.message || "Token không hợp lệ hoặc đã hết hạn")
-  } finally {
-    setIsLoading(false)
-  }
-}
 
+  const verifyResetToken = async (token: string) => {
+    try {
+      setIsLoading(true)
+      const data = await postJSON("/auth/verify-reset-token", { token })
+      console.log("Verify token success:", data.data)
+      return data.data
+    } catch (error: any) {
+      console.error("Verify token error:", error)
+      throw new Error(error.message || "Token không hợp lệ hoặc đã hết hạn")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, forgotPassword, verifyResetToken,  resetPassword, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, forgotPassword, verifyResetToken, resetPassword, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

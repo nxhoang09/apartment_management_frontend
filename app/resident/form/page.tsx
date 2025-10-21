@@ -1,19 +1,19 @@
-"use client";
+"use client"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import HouseholdResidentForm from "@/components/household-resident-form"
 
-import { ResidentSidebar } from "@/components/resident-sidebar";
-import HouseholdResidentForm from "@/components/HouseholdResidentForm";
-
-export default function ResidentFormPage() {
+export default function RegisterHouseholdPage() {
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <div className="hidden md:block md:w-1/4 bg-white border-r">
-        <ResidentSidebar />
-      </div>
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl">
-          <HouseholdResidentForm />
-        </div>
-      </div>
+    <div className="min-h-screen bg-background flex items-center justify-center p-4 py-12">
+      <Card className="w-full max-w-4xl">
+        <CardHeader>
+          <CardTitle className="text-3xl">Đăng ký thông tin hộ khẩu</CardTitle>
+          <CardDescription>Vui lòng điền đầy đủ thông tin chủ hộ và hộ khẩu của bạn</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <HouseholdResidentForm mode="create" />
+        </CardContent>
+      </Card>
     </div>
-  );
+  )
 }

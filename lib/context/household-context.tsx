@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { getHouseholdInfo } from "@/lib/api/api"
 import { useAuth } from "@/lib/context/auth-context"
 
@@ -25,40 +25,74 @@ interface HouseholdContextType {
 }
 
 const HouseholdContext = createContext<HouseholdContextType | undefined>(undefined)
+const HOUSEHOLD_STORAGE_KEY = "household_info"
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
-  const { token } = useAuth();
+  const { token, isLoading: isAuthLoading } = useAuth()
   const [household, setHousehold] = useState<Household | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
+  const clearHousehold = () => {
+    setHousehold(null)
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(HOUSEHOLD_STORAGE_KEY)
+    }
+  }
+
   const refreshHousehold = async () => {
+    if (!token) {
+      clearHousehold()
+      return
+    }
     setIsLoading(true)
     try {
-      console.log("refreshHousehold called, token:", token)
-      if (!token) {
-        setHousehold(null)
-        setIsLoading(false)
-        return
+      const apiResult = await getHouseholdInfo(token)
+      let householdData = null
+      if (apiResult && apiResult.data) {
+        householdData = Array.isArray(apiResult.data)
+          ? apiResult.data[0]
+          : apiResult.data
       }
-      const data = await getHouseholdInfo(token)
-      console.log("API household data:", data)
-      setHousehold(data || null)
+      if (householdData) {
+        setHousehold(householdData)
+        if (typeof window !== "undefined") {
+          localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(householdData))
+        }
+      } else {
+        clearHousehold()
+      }
     } catch (error) {
-      console.error("Error getHouseholdInfo:", error)
-      setHousehold(null)
+      console.error("refreshHousehold error:", error)
+      clearHousehold()
     } finally {
       setIsLoading(false)
     }
   }
 
+  
   useEffect(() => {
-    if (token) {
-      refreshHousehold()
-    } else {
-      setHousehold(null)
-      setIsLoading(false)
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(HOUSEHOLD_STORAGE_KEY)
+      if (stored) {
+        try {
+          setHousehold(JSON.parse(stored))
+        } catch {
+          setHousehold(null)
+        }
+      }
     }
-  }, [token])
+  }, [])
+
+  
+  useEffect(() => {
+    if (isAuthLoading) return // Chờ AuthProvider load xong
+    if (!token) {
+      clearHousehold()
+      setIsLoading(false)
+      return
+    }
+    refreshHousehold()
+  }, [token, isAuthLoading])
 
   return (
     <HouseholdContext.Provider value={{ household, refreshHousehold, isLoading }}>
