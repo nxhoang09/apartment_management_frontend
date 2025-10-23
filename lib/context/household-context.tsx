@@ -1,7 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { getHouseholdInfo } from "@/lib/api/api"
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react"
+import { getHouseholdInfo, getHouseholdMembers, addHouseholdMember } from "@/lib/api/api"
 import { useAuth } from "@/lib/context/auth-context"
 
 interface Household {
@@ -18,25 +18,50 @@ interface Household {
   userID: number
 }
 
+interface ResidentMember {
+  id: number
+  nationalId: string
+  phoneNumber: string
+  email: string
+  fullname: string
+  dateOfBirth: string
+  gender: string
+  relationshipToHead: string
+  placeOfOrigin: string
+  occupation: string
+  workingAdress: string
+  residencStatus: string
+  houseHoldId: number
+}
+
 interface HouseholdContextType {
   household: Household | null
   refreshHousehold: () => Promise<void>
   isLoading: boolean
+  members: ResidentMember[]
+  refreshMembers: () => Promise<void>
+  addMember: (data: any) => Promise<void>
 }
 
 const HouseholdContext = createContext<HouseholdContextType | undefined>(undefined)
 const HOUSEHOLD_STORAGE_KEY = "household_info"
+const MEMBERS_STORAGE_KEY = "household_members"
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
   const { token, isLoading: isAuthLoading } = useAuth()
   const [household, setHousehold] = useState<Household | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [members, setMembers] = useState<ResidentMember[]>([])
+  const hasFetchedMembers = useRef(false)
 
   const clearHousehold = () => {
     setHousehold(null)
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(HOUSEHOLD_STORAGE_KEY)
-    }
+    if (typeof window !== "undefined") localStorage.removeItem(HOUSEHOLD_STORAGE_KEY)
+  }
+
+  const clearMembers = () => {
+    setMembers([])
+    if (typeof window !== "undefined") localStorage.removeItem(MEMBERS_STORAGE_KEY)
   }
 
   const refreshHousehold = async () => {
@@ -47,16 +72,15 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     try {
       const apiResult = await getHouseholdInfo(token)
-      let householdData = null
-      if (apiResult && apiResult.data) {
-        householdData = Array.isArray(apiResult.data)
-          ? apiResult.data[0]
-          : apiResult.data
-      }
+      let householdData = Array.isArray(apiResult?.data) ? apiResult.data[0] : apiResult.data
       if (householdData) {
-        setHousehold(householdData)
-        if (typeof window !== "undefined") {
-          localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(householdData))
+        // Chỉ cập nhật nếu khác với giá trị cũ
+        if (JSON.stringify(householdData) !== JSON.stringify(household)) {
+          setHousehold(householdData)
+          if (typeof window !== "undefined") {
+            localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(householdData))
+          }
+          hasFetchedMembers.current = false // household thay đổi -> cho phép fetch lại members
         }
       } else {
         clearHousehold()
@@ -69,7 +93,33 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  
+  const refreshMembers = async () => {
+    if (!token || !household?.id) {
+      clearMembers()
+      return
+    }
+    try {
+      const apiResult = await getHouseholdMembers(token)
+      if (apiResult && Array.isArray(apiResult.data)) {
+        setMembers(apiResult.data)
+        if (typeof window !== "undefined") {
+          localStorage.setItem(MEMBERS_STORAGE_KEY, JSON.stringify(apiResult.data))
+        }
+      } else {
+        clearMembers()
+      }
+    } catch (error) {
+      console.error("refreshMembers error:", error)
+      clearMembers()
+    }
+  }
+  const addMember = async(data: any) =>{
+    if (!token) throw new Error("Chưa đăng nhập");
+    await addHouseholdMember(data, token);
+    await refreshMembers();
+  } 
+
+  // load household từ localStorage lần đầu
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(HOUSEHOLD_STORAGE_KEY)
@@ -83,9 +133,9 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  
+  // gọi API household khi có token
   useEffect(() => {
-    if (isAuthLoading) return // Chờ AuthProvider load xong
+    if (isAuthLoading) return
     if (!token) {
       clearHousehold()
       setIsLoading(false)
@@ -94,8 +144,18 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     refreshHousehold()
   }, [token, isAuthLoading])
 
+  // chỉ fetch members một lần sau khi household có dữ liệu
+  useEffect(() => {
+    if (!isAuthLoading && household && token && !hasFetchedMembers.current) {
+      hasFetchedMembers.current = true
+      refreshMembers()
+    }
+  }, [household, token, isAuthLoading])
+
   return (
-    <HouseholdContext.Provider value={{ household, refreshHousehold, isLoading }}>
+    <HouseholdContext.Provider
+      value={{ household, refreshHousehold, isLoading, members, refreshMembers, addMember }}
+    >
       {children}
     </HouseholdContext.Provider>
   )

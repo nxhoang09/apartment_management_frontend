@@ -1,6 +1,6 @@
 "use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import HouseholdResidentForm from "@/components/household-resident-form"
+import HouseholdResidentForm from "@/components/resident/household-resident-form"
 
 export default function RegisterHouseholdPage() {
   return (
