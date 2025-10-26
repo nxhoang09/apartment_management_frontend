@@ -7,7 +7,6 @@ import "./globals.css"
 import { AuthProvider } from "@/lib/context/auth-context"
 import { HouseholdProvider } from "@/lib/context/household-context"
 import { Suspense } from "react"
-
 export const metadata: Metadata = {
   title: "v0 App",
   description: "Created with v0",
@@ -24,7 +23,9 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense fallback={<div>Loading...</div>}>
           <AuthProvider>
-            <HouseholdProvider>{children}</HouseholdProvider>
+            <HouseholdProvider>
+              {children}
+            </HouseholdProvider>
           </AuthProvider>
         </Suspense>
         <Analytics />

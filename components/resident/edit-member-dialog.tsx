@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -10,60 +11,40 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useHousehold } from "@/lib/context/household-context"
+import type { ResidentMember } from "@/lib/context/household-context"
 
-interface AddMemberDialogProps {
+interface EditMemberDialogProps {
+  member: ResidentMember
   open: boolean
   onOpenChange: (open: boolean) => void
+  onUpdateMember: (id: string, data: any) => Promise<void>
 }
 
-export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
-  const { addMember } = useHousehold()
-
+export function EditMemberDialog({ member, open, onOpenChange, onUpdateMember }: EditMemberDialogProps) {
   const [formData, setFormData] = useState({
-    fullname: "",
-    nationalId: "",
-    dateOfBirth: "",
-    gender: "MALE",
-    relationshipToHead: "SPOUSE",
-    phoneNumber: "",
-    email: "",
-    placeOfOrigin: "",
-    occupation: "",
-    workingAdress: "",
+    fullname: member.fullname,
+    nationalId: member.nationalId,
+    dateOfBirth: member.dateOfBirth,
+    gender: member.gender,
+    relationshipToHead: member.relationshipToHead,
+    phoneNumber: member.phoneNumber,
+    email: member.email,
+    placeOfOrigin: member.placeOfOrigin,
+    occupation: member.occupation,
+    workingAdress: member.workingAdress,
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
-    setSuccess("")
     setIsLoading(true)
-
     try {
-      await addMember(formData)
-      setSuccess(`${formData.fullname} đã được thêm vào hộ khẩu.`)
-
-      // Reset form và đóng dialog sau 1s
-      setTimeout(() => {
-        setFormData({
-          fullname: "",
-          nationalId: "",
-          dateOfBirth: "",
-          gender: "MALE",
-          relationshipToHead: "SPOUSE",
-          phoneNumber: "",
-          email: "",
-          placeOfOrigin: "",
-          occupation: "",
-          workingAdress: "",
-        })
-        onOpenChange(false)
-      }, 1000)
+      await onUpdateMember(String(member.id), formData) 
+      onOpenChange(false)
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Lỗi khi thêm thành viên"
-      setError(`${message}`)
+      setError(err instanceof Error ? err.message : "Lỗi khi cập nhật thành viên")
     } finally {
       setIsLoading(false)
     }
@@ -73,25 +54,18 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Thêm thành viên hộ khẩu</DialogTitle>
-          <DialogDescription>Nhập thông tin chi tiết của thành viên mới</DialogDescription>
+          <DialogTitle>Sửa thông tin thành viên</DialogTitle>
+          <DialogDescription>Cập nhật thông tin của {member.fullname}</DialogDescription>
         </DialogHeader>
 
-        {/* Thông báo lỗi hoặc thành công */}
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        {success && (
-          <Alert>
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Họ tên & CCCD */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="fullname">Họ và tên *</Label>
@@ -113,7 +87,6 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             </div>
           </div>
 
-          {/* Ngày sinh & giới tính */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dateOfBirth">Ngày sinh *</Label>
@@ -129,7 +102,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
               <Label htmlFor="gender">Giới tính *</Label>
               <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
                 <SelectTrigger id="gender">
-                  <SelectValue placeholder="Chọn giới tính" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MALE">Nam</SelectItem>
@@ -139,7 +112,6 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             </div>
           </div>
 
-          {/* Quan hệ với chủ hộ */}
           <div className="space-y-2">
             <Label htmlFor="relationshipToHead">Quan hệ với chủ hộ *</Label>
             <Select
@@ -147,7 +119,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
               onValueChange={(value) => setFormData({ ...formData, relationshipToHead: value })}
             >
               <SelectTrigger id="relationshipToHead">
-                <SelectValue placeholder="Chọn quan hệ" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="WIFE">Vợ</SelectItem>
@@ -161,7 +133,6 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             </Select>
           </div>
 
-          {/* Liên hệ */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Số điện thoại</Label>
@@ -182,7 +153,6 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             </div>
           </div>
 
-          {/* Quê quán */}
           <div className="space-y-2">
             <Label htmlFor="placeOfOrigin">Quê quán</Label>
             <Input
@@ -192,7 +162,6 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             />
           </div>
 
-          {/* Nghề nghiệp & nơi làm việc */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="occupation">Nghề nghiệp</Label>
@@ -212,14 +181,13 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             </div>
           </div>
 
-          {/* Nút hành động */}
           <div className="flex gap-3 justify-end pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
               Hủy
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Thêm thành viên
+              Lưu thay đổi
             </Button>
           </div>
         </form>

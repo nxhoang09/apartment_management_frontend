@@ -6,7 +6,7 @@ import { MemberCard, Member } from "./member-card";
 interface MembersListProps {
   members: Member[];
   onAddMember: () => void;
-  onEditMember: (id: string) => void;
+  onEditMember: (member: Member) => void;
   onDeleteMember: (id: string) => void;
 }
 
@@ -19,9 +19,7 @@ export const MembersList = ({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-xl font-semibold">
-          Thành viên hộ khẩu
-        </CardTitle>
+        <CardTitle className="text-xl font-semibold">Thành viên hộ khẩu</CardTitle>
         <Button onClick={onAddMember} className="gap-2">
           <Plus className="h-4 w-4" />
           Thêm thành viên
@@ -33,8 +31,8 @@ export const MembersList = ({
             <MemberCard
               key={member.id}
               member={member}
-              onEdit={onEditMember}
-              onDelete={onDeleteMember}
+              onEdit={() => onEditMember(member)}
+              onDelete={() => onDeleteMember(member.id)}
             />
           ))}
         </div>

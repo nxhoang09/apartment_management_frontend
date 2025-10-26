@@ -3,7 +3,7 @@ export const API_URL =
 
 async function apiRequest(
   url: string,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   data?: any,
   token?: string
 ) {
@@ -14,7 +14,7 @@ async function apiRequest(
     headers,
     credentials: "include",
   };
-  if (data) options.body = JSON.stringify(data);
+  if (data && method !== "GET") options.body = JSON.stringify(data);
 
   const res = await fetch(`${API_URL}${url}`, options);
   const json = await res.json();
@@ -43,6 +43,14 @@ export async function getHouseholdMembers(token?: string) {
 
 export async function addHouseholdMember(data: any, token?: string) {
   return apiRequest("/house-hold/addmember", "POST", data, token);
+}
+
+export async function updateHouseHoldMember(residentId: number, data: any, token?: string) {
+  return apiRequest(`/house-hold/member/${residentId}`, "PATCH", data, token);
+}
+
+export async function deleteHouseHoldMember(residentId: number, token?: string) {
+  return apiRequest(`/house-hold/member/${residentId}`, "DELETE", undefined, token);
 }
 
 
