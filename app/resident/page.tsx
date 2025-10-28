@@ -10,7 +10,7 @@ import { Member } from "@/components/resident/member-card"
 import { MembersList } from "@/components/resident/member-list"
 import { HouseholdInfoCard } from "@/components/resident/household-info-card"
 import { WelcomeBanner } from "@/components/resident/welcome-banner"
-
+import { ResidentSidebar } from "@/components/resident/resident-sidebar"
 export default function ResidentPage() {
   const router = useRouter()
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -71,8 +71,9 @@ export default function ResidentPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Banner chào người dùng */}
-        <WelcomeBanner userName={user.username} />
+        {/* Banner chào người dùng
+        <WelcomeBanner userName={user.username} /> */}
+        <ResidentSidebar userName={user.username}/>
 
         {/* Thông tin hộ khẩu */}
         <HouseholdInfoCard info={household} />

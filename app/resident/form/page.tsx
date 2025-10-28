@@ -1,8 +1,12 @@
 "use client"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import HouseholdResidentForm from "@/components/resident/household-resident-form"
+import { useRouter } from "next/navigation"
+import { useHousehold } from "@/lib/context/household-context"
 
 export default function RegisterHouseholdPage() {
+  const router = useRouter()
+  const {refreshHousehold} = useHousehold()
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 py-12">
       <Card className="w-full max-w-4xl">
@@ -11,7 +15,13 @@ export default function RegisterHouseholdPage() {
           <CardDescription>Vui lòng điền đầy đủ thông tin chủ hộ và hộ khẩu của bạn</CardDescription>
         </CardHeader>
         <CardContent>
-          <HouseholdResidentForm mode="create" />
+          <HouseholdResidentForm 
+            mode="create"
+            onSuccess={async ()=>{
+              await refreshHousehold()
+              router.replace("/resident")
+            }} 
+          />
         </CardContent>
       </Card>
     </div>
