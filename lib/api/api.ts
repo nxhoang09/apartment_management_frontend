@@ -53,5 +53,9 @@ export async function deleteHouseHoldMember(residentId: number, token?: string) 
   return apiRequest(`/house-hold/member/${residentId}`, "DELETE", undefined, token);
 }
 
+export async function updateHouseHoldInfo(data: any, token?: string) {
+  return apiRequest("/house-hold/update", "PATCH", data, token);
+}
+
 
 

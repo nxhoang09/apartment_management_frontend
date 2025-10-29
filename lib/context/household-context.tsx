@@ -1,7 +1,14 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react"
-import { getHouseholdInfo, getHouseholdMembers, addHouseholdMember, updateHouseHoldMember, deleteHouseHoldMember } from "@/lib/api/api"
+import { 
+  getHouseholdInfo, 
+  getHouseholdMembers, 
+  addHouseholdMember, 
+  updateHouseHoldMember, 
+  deleteHouseHoldMember,
+  updateHouseHoldInfo
+} from "@/lib/api/api"
 import { useAuth } from "@/lib/context/auth-context"
 
 export interface ResidentMember {
@@ -20,7 +27,7 @@ export interface ResidentMember {
   houseHoldId: number
 }
 
-interface Household {
+export interface Household {
   id: number
   houseHoldCode: number
   apartmentNumber: string
@@ -34,8 +41,18 @@ interface Household {
   userID: number
 }
 
+export interface HouseholdData {
+  household: Household
+  head: {
+    id: number
+    fullname: string
+    phoneNumber: string
+    email: string
+  }
+}
+
 interface HouseholdContextType {
-  household: Household | null
+  household: HouseholdData | null
   refreshHousehold: () => Promise<void>
   isLoading: boolean
   members: ResidentMember[]
@@ -43,6 +60,7 @@ interface HouseholdContextType {
   addMember: (data: any) => Promise<void>
   updateMember: (residentId: number, data: Partial<ResidentMember>) => Promise<void>
   deleteMember: (residentId: string) => Promise<void>
+  updateHousehold: (data: any) => Promise<void>
 }
 
 const HouseholdContext = createContext<HouseholdContextType | undefined>(undefined)
@@ -51,7 +69,7 @@ const MEMBERS_STORAGE_KEY = "household_members"
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
   const { token, isLoading: isAuthLoading } = useAuth()
-  const [household, setHousehold] = useState<Household | null>(null)
+  const [household, setHousehold] = useState<HouseholdData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [members, setMembers] = useState<ResidentMember[]>([])
   const hasFetchedMembers = useRef(false)
@@ -74,16 +92,17 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     try {
       const apiResult = await getHouseholdInfo(token)
-      let householdData = Array.isArray(apiResult?.data) ? apiResult.data[0] : apiResult.data
-      if (householdData) {
-        // Chỉ cập nhật nếu khác với giá trị cũ
-        if (JSON.stringify(householdData) !== JSON.stringify(household)) {
-          setHousehold(householdData)
-          if (typeof window !== "undefined") {
-            localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(householdData))
-          }
-          hasFetchedMembers.current = false // household thay đổi -> cho phép fetch lại members
+      const data = apiResult?.data
+      if (data?.household && data?.head) {
+        const householdData: HouseholdData = {
+          household: data.household,
+          head: data.head,
         }
+        setHousehold(householdData)
+        if (typeof window !== "undefined") {
+          localStorage.setItem(HOUSEHOLD_STORAGE_KEY, JSON.stringify(householdData))
+        }
+        hasFetchedMembers.current = false
       } else {
         clearHousehold()
       }
@@ -96,7 +115,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   }
 
   const refreshMembers = async () => {
-    if (!token || !household?.id) {
+    if (!token || !household?.household?.id) {
       clearMembers()
       return
     }
@@ -115,23 +134,32 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       clearMembers()
     }
   }
-  const addMember = async(data: any) =>{
-    if (!token) throw new Error("Chưa đăng nhập");
-    await addHouseholdMember(data, token);
-    await refreshMembers();
-  }
-  const updateMember = async(residentId: number, data: Partial<ResidentMember>) =>{
-    if(!token) throw new Error("Chưa đăng nhập");
-    await updateHouseHoldMember(residentId, data, token);
-    await refreshMembers();
-  } 
-  const deleteMember = async (residentId: string) => {
-    if (!token) throw new Error("Chưa đăng nhập");
-    await deleteHouseHoldMember(Number(residentId), token);
-    await refreshMembers();
+
+  const addMember = async (data: any) => {
+    if (!token) throw new Error("Chưa đăng nhập")
+    await addHouseholdMember(data, token)
+    await refreshMembers()
   }
 
-  // load household từ localStorage lần đầu
+  const updateMember = async (residentId: number, data: Partial<ResidentMember>) => {
+    if (!token) throw new Error("Chưa đăng nhập")
+    await updateHouseHoldMember(residentId, data, token)
+    await refreshMembers()
+  }
+
+  const deleteMember = async (residentId: string) => {
+    if (!token) throw new Error("Chưa đăng nhập")
+    await deleteHouseHoldMember(Number(residentId), token)
+    await refreshMembers()
+  }
+
+  const updateHousehold = async(data: any) => {
+    if(!token) throw new Error("Chưa đăng nhập")
+    await updateHouseHoldInfo(data,token)
+    await refreshHousehold()
+  }
+
+  // Load từ localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(HOUSEHOLD_STORAGE_KEY)
@@ -145,7 +173,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // gọi API household khi có token
+  // Fetch household khi có token
   useEffect(() => {
     if (isAuthLoading) return
     if (!token) {
@@ -156,7 +184,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     refreshHousehold()
   }, [token, isAuthLoading])
 
-  // chỉ fetch members một lần sau khi household có dữ liệu
+  // Fetch members sau khi có household
   useEffect(() => {
     if (!isAuthLoading && household && token && !hasFetchedMembers.current) {
       hasFetchedMembers.current = true
@@ -167,6 +195,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   return (
     <HouseholdContext.Provider
       value={{
+        updateHousehold,
         household,
         refreshHousehold,
         isLoading,

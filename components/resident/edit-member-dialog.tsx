@@ -123,6 +123,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdateMember }:
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="WIFE">Vợ</SelectItem>
+                <SelectItem value="HEAD">Chủ hộ</SelectItem>
                 <SelectItem value="HUSBAND">Chồng</SelectItem>
                 <SelectItem value="FATHER">Bố</SelectItem>
                 <SelectItem value="MOTHER">Mẹ</SelectItem>

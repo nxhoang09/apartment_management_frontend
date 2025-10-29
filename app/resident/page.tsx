@@ -6,11 +6,12 @@ import { useAuth } from "@/lib/context/auth-context"
 import { useHousehold } from "@/lib/context/household-context"
 import { AddMemberDialog } from "@/components/resident/add-member-dialog"
 import { EditMemberDialog } from "@/components/resident/edit-member-dialog"
+import { EditHouseholdDialog } from "@/components/resident/edit-household-dialog"
 import { Member } from "@/components/resident/member-card"
 import { MembersList } from "@/components/resident/member-list"
 import { HouseholdInfoCard } from "@/components/resident/household-info-card"
-import { WelcomeBanner } from "@/components/resident/welcome-banner"
 import { ResidentSidebar } from "@/components/resident/resident-sidebar"
+import { ConfirmDeleteMemberDialog } from "@/components/resident/confirm-delete-member"
 export default function ResidentPage() {
   const router = useRouter()
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -27,11 +28,33 @@ export default function ResidentPage() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [deleteError, setDeleteError] = useState("")
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [isEditHouseholdOpen, setIsEditHouseholdOpen] = useState(false)
 
   // Mở dialog sửa
   const handleEditMember = (member: Member) => {
     setSelectedMember(member)
     setIsEditDialogOpen(true)
+  }
+
+  // Khi bấm xóa, chỉ mở dialog xác nhận
+  const handleDeleteMember = (id: string) => {
+    setConfirmDeleteId(id)
+  }
+
+  // Hàm xác nhận xóa thật sự
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return
+    setDeleteLoading(true)
+    setDeleteError("")
+    try {
+      await deleteMember(confirmDeleteId)
+      setConfirmDeleteId(null)
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Lỗi khi xóa thành viên")
+    } finally {
+      setDeleteLoading(false)
+    }
   }
 
   // Điều hướng khi chưa đăng nhập
@@ -46,17 +69,6 @@ export default function ResidentPage() {
     if (!household) router.replace("/resident/form")
   }, [isAuthLoading, isHouseholdLoading, user, household, router])
 
-  const handleDeleteMember = async (id: string) => {
-    setDeleteLoading(true)
-    setDeleteError("")
-    try {
-      await deleteMember(id)
-    } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : "Lỗi khi xóa thành viên")
-    } finally {
-      setDeleteLoading(false)
-    }
-  }
 
   if (isAuthLoading || isHouseholdLoading) {
     return (
@@ -76,7 +88,27 @@ export default function ResidentPage() {
         <ResidentSidebar userName={user.username}/>
 
         {/* Thông tin hộ khẩu */}
-        <HouseholdInfoCard info={household} />
+        <HouseholdInfoCard
+          info={{
+                  houseHoldCode: String(household.household.houseHoldCode),
+                  apartmentNumber: household.household.apartmentNumber,
+                  buildingNumber: household.household.buildingNumber,
+                  street: household.household.street,
+                  ward: household.household.ward,
+                  province: household.household.province,
+                  status: household.household.status,
+                  head: household.head?.fullname ?? "Chưa có chủ hộ",
+                }}
+          onEdit={()=>{
+            console.log(">> Bấm nút Chỉnh sửa hộ khẩu")
+            setIsEditHouseholdOpen(true)
+          }} 
+        />
+        <EditHouseholdDialog
+          household={household.household}
+          open={isEditHouseholdOpen}
+          onOpenChange={setIsEditHouseholdOpen}
+        />
 
         {/* Danh sách thành viên */}
         <MembersList
@@ -90,6 +122,14 @@ export default function ResidentPage() {
         <AddMemberDialog
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
+        />
+
+        <ConfirmDeleteMemberDialog
+          open={!!confirmDeleteId}
+          onCancel={() => setConfirmDeleteId(null)}
+          onConfirm={confirmDelete}
+          loading={deleteLoading}
+          error={deleteError}
         />
 
         {/* Dialog chỉnh sửa thành viên */}

@@ -11,6 +11,7 @@ export interface HouseholdInfo {
   ward: string;
   province: string;
   status: string;
+  head: string;
 }
 
 interface HouseholdInfoCardProps {
@@ -34,6 +35,7 @@ export const HouseholdInfoCard = ({ info, onEdit }: HouseholdInfoCardProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <InfoItem label="Mã hộ khẩu" value={info.houseHoldCode} />
           <InfoItem label="Số căn hộ" value={info.apartmentNumber} />
+          <InfoItem label="Chủ hộ" value={info.head} />
           <InfoItem label="Tòa nhà" value={info.buildingNumber} />
           <InfoItem label="Đường" value={info.street} />
           <InfoItem label="Phường" value={info.ward} />
