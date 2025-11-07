@@ -58,4 +58,8 @@ export async function updateHouseHoldInfo(data: any, token?: string) {
 }
 
 
+export async function adminGetAllHouseholds(token?: string) { 
+  return apiRequest("/admin", "GET", undefined, token); 
+}
+
 
