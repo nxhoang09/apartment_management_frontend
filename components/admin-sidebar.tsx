@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { Building2, Users, FileText, LayoutDashboard, Settings, Bell, LogOut, ChevronLeft, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { useAuth } from "@/lib/context/auth-context"
 
 const menuItems = [
   {
@@ -44,6 +45,7 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { logout } = useAuth()
 
   return (
     <>
@@ -113,16 +115,10 @@ export function AdminSidebar() {
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-border">
-            <Button
-              variant="ghost"
-              className={cn("w-full justify-start text-muted-foreground", collapsed && "justify-center px-0")}
-              asChild
-            >
-              <Link href="/login">
-                <LogOut className="h-5 w-5" />
-                {!collapsed && <span className="ml-3">Đăng xuất</span>}
-              </Link>
+          <div className=" py-4 pr-2 border-t border-border flex justify-center  ">
+           <Button variant="ghost" size="lg" onClick={logout}>
+              <LogOut className="h-4 w-4 mr-2" />
+                Đăng xuất
             </Button>
           </div>
         </div>

@@ -1,236 +1,150 @@
-import { ResidentSidebar } from "@/components/resident-sidebar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Home, Users, FileText, Bell, Calendar, CheckCircle2, Clock } from "lucide-react"
+"use client"
 
-export default function ResidentDashboard() {
-  // Mock data
-  const apartmentInfo = {
-    code: "A-101",
-    floor: 10,
-    area: "85m²",
-    residents: 4,
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/lib/context/auth-context"
+import { useHousehold } from "@/lib/context/household-context"
+import { AddMemberDialog } from "@/components/resident/add-member-dialog"
+import { EditMemberDialog } from "@/components/resident/edit-member-dialog"
+import { EditHouseholdDialog } from "@/components/resident/edit-household-dialog"
+import { Member } from "@/components/resident/member-card"
+import { MembersList } from "@/components/resident/member-list"
+import { HouseholdInfoCard } from "@/components/resident/household-info-card"
+import { ResidentSidebar } from "@/components/resident/resident-sidebar"
+import { ConfirmDeleteMemberDialog } from "@/components/resident/confirm-delete-member"
+export default function ResidentPage() {
+  const router = useRouter()
+  const { user, isLoading: isAuthLoading } = useAuth()
+  const {
+    household,
+    isLoading: isHouseholdLoading,
+    members,
+    updateMember,
+    deleteMember, // Thêm hàm xóa member từ context
+  } = useHousehold()
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState("")
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [isEditHouseholdOpen, setIsEditHouseholdOpen] = useState(false)
+
+  // Mở dialog sửa
+  const handleEditMember = (member: Member) => {
+    setSelectedMember(member)
+    setIsEditDialogOpen(true)
   }
 
-  const recentAnnouncements = [
-    {
-      id: 1,
-      title: "Thông báo bảo trì thang máy",
-      date: "2025-01-05",
-      type: "maintenance",
-    },
-    {
-      id: 2,
-      title: "Lịch cắt nước định kỳ",
-      date: "2025-01-03",
-      type: "utility",
-    },
-    {
-      id: 3,
-      title: "Họp cư dân tháng 1",
-      date: "2025-01-01",
-      type: "meeting",
-    },
-  ]
+  // Khi bấm xóa, chỉ mở dialog xác nhận
+  const handleDeleteMember = (id: string) => {
+    setConfirmDeleteId(id)
+  }
 
-  const myDeclarations = [
-    {
-      id: 1,
-      type: "Tạm trú",
-      date: "2024-12-20",
-      status: "approved",
-    },
-    {
-      id: 2,
-      type: "Tạm vắng",
-      date: "2024-11-15",
-      status: "approved",
-    },
-  ]
+  // Hàm xác nhận xóa thật sự
+  const confirmDelete = async () => {
+    if (!confirmDeleteId) return
+    setDeleteLoading(true)
+    setDeleteError("")
+    try {
+      await deleteMember(confirmDeleteId)
+      setConfirmDeleteId(null)
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Lỗi khi xóa thành viên")
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
+  // Điều hướng khi chưa đăng nhập
+  useEffect(() => {
+    if (!isAuthLoading && !user) router.replace("/auth/login")
+  }, [isAuthLoading, user, router])
+
+  // Điều hướng khi chưa có hộ khẩu
+  useEffect(() => {
+    if (isAuthLoading || isHouseholdLoading) return
+    if (!user) return router.replace("/auth/login")
+    if (!household) router.replace("/resident/form")
+  }, [isAuthLoading, isHouseholdLoading, user, household, router])
+
+
+  if (isAuthLoading || isHouseholdLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p>Đang tải dữ liệu...</p>
+      </div>
+    )
+  }
+
+  if (!user || !household) return null
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <ResidentSidebar />
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Banner chào người dùng
+        <WelcomeBanner userName={user.username} /> */}
+        <ResidentSidebar userName={user.username}/>
 
-      <main className="flex-1 lg:ml-64 p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
-          {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold">Xin chào, Nguyễn Văn A</h1>
-            <p className="text-muted-foreground mt-2">Chào mừng bạn đến với cổng thông tin cư dân</p>
-          </div>
+        {/* Thông tin hộ khẩu */}
+        <HouseholdInfoCard
+          info={{
+                  houseHoldCode: String(household.household.houseHoldCode),
+                  apartmentNumber: household.household.apartmentNumber,
+                  buildingNumber: household.household.buildingNumber,
+                  street: household.household.street,
+                  ward: household.household.ward,
+                  province: household.household.province,
+                  status: household.household.status,
+                  head: household.head?.fullname ?? "Chưa có chủ hộ",
+                }}
+          onEdit={()=>{
+            console.log(">> Bấm nút Chỉnh sửa hộ khẩu")
+            setIsEditHouseholdOpen(true)
+          }} 
+        />
+        <EditHouseholdDialog
+          household={household.household}
+          open={isEditHouseholdOpen}
+          onOpenChange={setIsEditHouseholdOpen}
+        />
 
-          {/* Apartment Info Card */}
-          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Home className="h-5 w-5 text-primary" />
-                Thông tin căn hộ
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                <div>
-                  <p className="text-sm text-muted-foreground">Mã căn hộ</p>
-                  <p className="text-2xl font-bold text-primary">{apartmentInfo.code}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Tầng</p>
-                  <p className="text-2xl font-bold">{apartmentInfo.floor}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Diện tích</p>
-                  <p className="text-2xl font-bold">{apartmentInfo.area}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Số cư dân</p>
-                  <p className="text-2xl font-bold">{apartmentInfo.residents}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Danh sách thành viên */}
+        <MembersList
+          members={members}
+          onAddMember={() => setIsDialogOpen(true)}
+          onEditMember={handleEditMember}
+          onDeleteMember={handleDeleteMember}
+        />
 
-          {/* Quick Actions */}
-          <div className="grid gap-6 md:grid-cols-3">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer group">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <FileText className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Khai báo mới</h3>
-                    <p className="text-sm text-muted-foreground">Tạm trú/tạm vắng</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Dialog thêm thành viên  */}
+        <AddMemberDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+        />
 
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer group">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-lg bg-secondary/10 flex items-center justify-center group-hover:bg-secondary/20 transition-colors">
-                    <Users className="h-6 w-6 text-secondary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Hộ gia đình</h3>
-                    <p className="text-sm text-muted-foreground">Quản lý thành viên</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <ConfirmDeleteMemberDialog
+          open={!!confirmDeleteId}
+          onCancel={() => setConfirmDeleteId(null)}
+          onConfirm={confirmDelete}
+          loading={deleteLoading}
+          error={deleteError}
+        />
 
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer group">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                    <Bell className="h-6 w-6 text-accent" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Thông báo</h3>
-                    <p className="text-sm text-muted-foreground">3 thông báo mới</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Recent Announcements */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Thông báo mới</CardTitle>
-                    <CardDescription>Thông báo từ ban quản lý</CardDescription>
-                  </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href="/resident/announcements">Xem tất cả</a>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentAnnouncements.map((announcement) => (
-                    <div
-                      key={announcement.id}
-                      className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                    >
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Bell className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm">{announcement.title}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">{announcement.date}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* My Declarations */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Khai báo của tôi</CardTitle>
-                    <CardDescription>Lịch sử khai báo tạm trú/tạm vắng</CardDescription>
-                  </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href="/resident/declarations">Xem tất cả</a>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {myDeclarations.map((declaration) => (
-                    <div
-                      key={declaration.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                            declaration.status === "approved" ? "bg-chart-4/10" : "bg-accent/10"
-                          }`}
-                        >
-                          {declaration.status === "approved" ? (
-                            <CheckCircle2 className="h-5 w-5 text-chart-4" />
-                          ) : (
-                            <Clock className="h-5 w-5 text-accent" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{declaration.type}</p>
-                          <p className="text-xs text-muted-foreground">{declaration.date}</p>
-                        </div>
-                      </div>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          declaration.status === "approved" ? "bg-chart-4/10 text-chart-4" : "bg-accent/10 text-accent"
-                        }`}
-                      >
-                        {declaration.status === "approved" ? "Đã duyệt" : "Chờ duyệt"}
-                      </span>
-                    </div>
-                  ))}
-
-                  <Button variant="outline" className="w-full bg-transparent" asChild>
-                    <a href="/resident/declarations/new">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Tạo khai báo mới
-                    </a>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
+        {/* Dialog chỉnh sửa thành viên */}
+        {selectedMember && (
+          <EditMemberDialog
+            member={selectedMember}
+            open={isEditDialogOpen}
+            onOpenChange={(open) => {
+              setIsEditDialogOpen(open)
+              if (!open) setSelectedMember(null)
+            }}
+            onUpdateMember={updateMember}
+          />
+        )}
+      </div>
     </div>
   )
 }

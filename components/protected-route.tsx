@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/lib/auth-context"
+import { useAuth } from "@/lib/context/auth-context"
 import { Loader2 } from "lucide-react"
 
 interface ProtectedRouteProps {
@@ -20,7 +20,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     if (!isLoading) {
       // Not authenticated - redirect to login
       if (!user) {
-        router.push("/login")
+        router.push("/auth/login")
         return
       }
 
@@ -29,7 +29,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
         // Redirect based on user's actual role
         if (user.role === "ADMIN") {
           router.push("/admin")
-        } else if (user.role === "RESIDENT") {
+        } else if (user.role === "USER") {
           router.push("/resident")
         } else {
           router.push("/")
