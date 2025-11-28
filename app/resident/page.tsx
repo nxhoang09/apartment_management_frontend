@@ -30,6 +30,7 @@ export default function ResidentPage() {
   const [deleteError, setDeleteError] = useState("")
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [isEditHouseholdOpen, setIsEditHouseholdOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   // Mở dialog sửa
   const handleEditMember = (member: Member) => {
@@ -82,10 +83,14 @@ export default function ResidentPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className={`transition-all duration-300 px-4 py-8 ${collapsed ? "lg:ml-16" : "lg:ml-64"}`}>
         {/* Banner chào người dùng
         <WelcomeBanner userName={user.username} /> */}
-        <ResidentSidebar userName={user.username}/>
+        <ResidentSidebar
+          userName={user.username}
+          collapsed={collapsed}
+          onToggleCollapse={() => setCollapsed(!collapsed)}
+        />
 
         {/* Thông tin hộ khẩu */}
         <HouseholdInfoCard

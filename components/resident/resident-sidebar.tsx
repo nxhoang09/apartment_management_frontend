@@ -10,6 +10,8 @@ import { useAuth } from "@/lib/context/auth-context"
 
 interface ResidentSidebarProps {
   userName: string;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const menuItems = [
@@ -40,9 +42,9 @@ const menuItems = [
   },
 ]
 
-export function ResidentSidebar({userName}: ResidentSidebarProps) {
+export function ResidentSidebar({ userName, collapsed, onToggleCollapse }: ResidentSidebarProps) {
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
+  // `collapsed` is controlled by parent (page) so layout can respond
   const [mobileOpen, setMobileOpen] = useState(false)
   const { logout } = useAuth()
 
@@ -87,7 +89,7 @@ export function ResidentSidebar({userName}: ResidentSidebarProps) {
                 variant="ghost"
                 size="icon"
                 className={cn("hidden lg:flex", collapsed && "mx-auto")}
-                onClick={() => setCollapsed(!collapsed)}
+                onClick={onToggleCollapse}
               >
                 <ChevronLeft
                   className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")}
