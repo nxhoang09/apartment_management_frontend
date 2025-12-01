@@ -1,7 +1,7 @@
 export const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000" // backend NestJS
 
-async function apiRequest(
+export async function apiRequest(
   url: string,
   method: "GET" | "POST" | "PATCH" | "DELETE",
   data?: any,
