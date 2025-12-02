@@ -7,6 +7,7 @@ import { format } from "date-fns";
 export interface Member {
   id: string;
   fullname: string;
+  nationalId: string;
   relationshipToHead: string;
   dateOfBirth: string;
   gender: string;
@@ -15,6 +16,7 @@ export interface Member {
   phoneNumber: string;
   workingAdress: string;
   placeOfOrigin: string;
+  informationStatus?: string;
 }
 
 interface MemberCardProps {
@@ -34,9 +36,16 @@ export const MemberCard = ({ member, onEdit, onDelete }: MemberCardProps) => {
             </div>
             <div>
               <h3 className="font-semibold text-lg text-foreground">{member.fullname}</h3>
-              <Badge variant="secondary" className="mt-1">
-                {member.relationshipToHead}
-              </Badge>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="secondary">{member.relationshipToHead}</Badge>
+                {member.informationStatus && (() => {
+                  const status = member.informationStatus
+                  let variant: "secondary" | "destructive" | undefined = undefined
+                  if (/REJECT|DELETE/i.test(status)) variant = "destructive"
+                  else if (/PEND/i.test(status)) variant = "secondary"
+                  return <Badge variant={variant}>{status}</Badge>
+                })()}
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
@@ -59,6 +68,7 @@ export const MemberCard = ({ member, onEdit, onDelete }: MemberCardProps) => {
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <MemberInfo label="CCCD/CMND" value={<span className="font-bold">{member.nationalId}</span>} />
           <MemberInfo label="Ngày sinh" value={<span className="font-bold">{formatDate(member.dateOfBirth)}</span>} />
           <MemberInfo label="Giới tính" value={<span className="font-semibold">{member.gender}</span>} />
           <MemberInfo label="Nghề nghiệp" value={<span className="font-semibold">{member.occupation}</span>} />

@@ -26,7 +26,7 @@ const menuItems = [
   },
   {
     title: "Khai báo",
-    href: "/admin/declarations",
+    href: "/admin/registrations",
     icon: FileText,
   },
   {

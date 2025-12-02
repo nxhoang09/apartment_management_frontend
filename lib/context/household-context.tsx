@@ -7,7 +7,13 @@ import {
   addHouseholdMember, 
   updateHouseHoldMember, 
   deleteHouseHoldMember,
-  updateHouseHoldInfo
+  updateHouseHoldInfo,
+  getTempResidents,
+  createTempResidentRegis,
+  deleteTempResidentRegis,
+  deleteTempResidentByTemRoute,
+  createTempResidentFirstTime as apiCreateTempResidentFirstTime,
+  createTempResidentForExistingResident as apiCreateTempResidentForExistingResident,
 } from "@/lib/api/api"
 import { useAuth } from "@/lib/context/auth-context"
 
@@ -60,6 +66,12 @@ interface HouseholdContextType {
   addMember: (data: any) => Promise<void>
   updateMember: (residentId: number, data: Partial<ResidentMember>) => Promise<void>
   deleteMember: (residentId: string) => Promise<void>
+  tempResidents: any[]
+  refreshTempResidents: () => Promise<void>
+  createTempResident: (data: any) => Promise<void>
+  createTempResidentFirstTime: (residentData: any, registrationData: any) => Promise<void>
+  createTempResidentForExistingResident: (residentId: number | string, registrationData: any) => Promise<void>
+  deleteTempResident: (registrationId: number | string) => Promise<void>
   updateHousehold: (data: any) => Promise<void>
 }
 
@@ -72,7 +84,9 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const [household, setHousehold] = useState<HouseholdData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [members, setMembers] = useState<ResidentMember[]>([])
+  const [tempResidents, setTempResidents] = useState<any[]>([])
   const hasFetchedMembers = useRef(false)
+  const hasFetchedTempResidents = useRef(false)
 
   const clearHousehold = () => {
     setHousehold(null)
@@ -135,6 +149,53 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const clearTempResidents = () => {
+    setTempResidents([])
+  }
+
+  const refreshTempResidents = async () => {
+    if (!token || !household?.household?.id) {
+      clearTempResidents()
+      return
+    }
+    try {
+      const apiResult = await getTempResidents(token)
+      if (apiResult && Array.isArray(apiResult.data)) {
+        setTempResidents(apiResult.data)
+      } else {
+        clearTempResidents()
+      }
+    } catch (error) {
+      console.error("refreshTempResidents error:", error)
+      clearTempResidents()
+    }
+  }
+
+  const createTempResident = async (data: any) => {
+    if (!token) throw new Error("Chưa đăng nhập")
+    await createTempResidentRegis(data, token)
+    await refreshTempResidents()
+  }
+
+  const createTempResidentFirstTime = async (residentData: any, registrationData: any) => {
+    if (!token) throw new Error("Chưa đăng nhập")
+    const payload = { ...residentData, ...registrationData }
+    await apiCreateTempResidentFirstTime(payload, token)
+    await refreshTempResidents()
+  }
+
+  const createTempResidentForExistingResident = async (residentId: number | string, registrationData: any) => {
+    if (!token) throw new Error("Chưa đăng nhập")
+    await apiCreateTempResidentForExistingResident(Number(residentId), registrationData, token)
+    await refreshTempResidents()
+  }
+  const deleteTempResident = async (registrationId: number | string) => {
+    if (!token) throw new Error("Chưa đăng nhập")
+    // Use tem-resident route for deletion to avoid calling /registration/:id directly
+    await deleteTempResidentByTemRoute(Number(registrationId), token)
+    await refreshTempResidents()
+  }
+
   const addMember = async (data: any) => {
     if (!token) throw new Error("Chưa đăng nhập")
     await addHouseholdMember(data, token)
@@ -192,6 +253,14 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     }
   }, [household, token, isAuthLoading])
 
+  // Fetch temp residents after household available
+  useEffect(() => {
+    if (!isAuthLoading && household && token && !hasFetchedTempResidents.current) {
+      hasFetchedTempResidents.current = true
+      refreshTempResidents()
+    }
+  }, [household, token, isAuthLoading])
+
   return (
     <HouseholdContext.Provider
       value={{
@@ -204,6 +273,12 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         addMember,
         updateMember,
         deleteMember,
+        tempResidents,
+        refreshTempResidents,
+        createTempResident,
+        createTempResidentFirstTime,
+        createTempResidentForExistingResident,
+        deleteTempResident,
       }}
     >
       {children}

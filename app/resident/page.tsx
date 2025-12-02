@@ -10,8 +10,8 @@ import { EditHouseholdDialog } from "@/components/resident/edit-household-dialog
 import { Member } from "@/components/resident/member-card"
 import { MembersList } from "@/components/resident/member-list"
 import { HouseholdInfoCard } from "@/components/resident/household-info-card"
-import { ResidentSidebar } from "@/components/resident/resident-sidebar"
 import { ConfirmDeleteMemberDialog } from "@/components/resident/confirm-delete-member"
+
 export default function ResidentPage() {
   const router = useRouter()
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -85,7 +85,7 @@ export default function ResidentPage() {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Banner chào người dùng
         <WelcomeBanner userName={user.username} /> */}
-        <ResidentSidebar userName={user.username}/>
+        {/* Sidebar is provided by resident layout */}
 
         {/* Thông tin hộ khẩu */}
         <HouseholdInfoCard

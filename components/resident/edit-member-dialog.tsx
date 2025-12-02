@@ -24,7 +24,8 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdateMember }:
   const [formData, setFormData] = useState({
     fullname: member.fullname,
     nationalId: member.nationalId,
-    dateOfBirth: member.dateOfBirth,
+    // show date in dd/mm/yyyy if possible
+    dateOfBirth: formatToDDMMYYYY(member.dateOfBirth),
     gender: member.gender,
     relationshipToHead: member.relationshipToHead,
     phoneNumber: member.phoneNumber,
@@ -41,7 +42,14 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdateMember }:
     setError("")
     setIsLoading(true)
     try {
-      await onUpdateMember(String(member.id), formData) 
+      // convert dateOfBirth from dd/mm/yyyy to ISO before submit
+      const payload = { ...formData }
+      if (formData.dateOfBirth) {
+        const parsed = parseDDMMYYYY(formData.dateOfBirth)
+        if (!parsed) throw new Error("Ngày sinh không hợp lệ. Vui lòng dùng dd/mm/yyyy")
+        payload.dateOfBirth = parsed
+      }
+      await onUpdateMember(String(member.id), payload)
       onOpenChange(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Lỗi khi cập nhật thành viên")
@@ -90,13 +98,14 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdateMember }:
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dateOfBirth">Ngày sinh *</Label>
-              <Input
-                id="dateOfBirth"
-                type="date"
-                required
-                value={formData.dateOfBirth}
-                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-              />
+                <Input
+                  id="dateOfBirth"
+                  type="text"
+                  placeholder="dd/mm/yyyy"
+                  required
+                  value={formData.dateOfBirth}
+                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                />
             </div>
             <div className="space-y-2">
               <Label htmlFor="gender">Giới tính *</Label>
@@ -195,4 +204,30 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdateMember }:
       </DialogContent>
     </Dialog>
   )
+}
+
+function formatToDDMMYYYY(dateStr: string) {
+  if (!dateStr) return ""
+  // try ISO first
+  const d = new Date(dateStr)
+  if (!isNaN(d.getTime())) {
+    const dd = String(d.getDate()).padStart(2, "0")
+    const mm = String(d.getMonth() + 1).padStart(2, "0")
+    const yyyy = d.getFullYear()
+    return `${dd}/${mm}/${yyyy}`
+  }
+  // fallback if already in dd/mm/yyyy
+  const m = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  return m ? dateStr : ""
+}
+
+function parseDDMMYYYY(str: string) {
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  if (!m) return null
+  const day = Number(m[1])
+  const month = Number(m[2])
+  const year = Number(m[3])
+  const d = new Date(year, month - 1, day)
+  if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null
+  return d.toISOString().split("T")[0]
 }
