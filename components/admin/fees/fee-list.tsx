@@ -27,7 +27,7 @@ export function FeeList() {
         toast.success("Đã xóa khoản phí thành công")
       } catch (error) {
         toast.error("Xóa thất bại", {
-            description: error instanceof Error ? error.message : "Có lỗi xảy ra"
+            description:  "Không xóa được khoản phí đã gán"
         })
       }
     }
