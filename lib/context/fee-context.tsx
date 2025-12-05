@@ -4,6 +4,7 @@ import { feesApi, type Fee } from "@/lib/api/fee/feesApi"
 import { feeAssignmentsApi, FeeAssignmentItem, CreateAssignmentDto } from "@/lib/api/fee/feeAssignmentsApi"
 import { useAuth } from "./auth-context"
 import { toast } from "sonner"
+import { CreatePaymentPayload } from "@/lib/api/fee/feeAssignmentsApi"
 
 interface FeeContextType {
   fees: Fee[]
@@ -20,6 +21,8 @@ interface FeeContextType {
 
   approvePayment:(paymentId: number) => Promise<void>
   rejectPayment: (paymentId: number, note: string) => Promise<void>
+
+  submitPayment: (feeAssignmentId: number, amount: number, file: File) => Promise<void>
 }
 
 const FeeContext = createContext<FeeContextType | undefined>(undefined)
@@ -82,6 +85,39 @@ export function FeeProvider({ children }: { children: ReactNode }) {
     toast.error("Đã từ chối",{description: "Thanh toán đã bị từ chối",})
   }, [token])
 
+  const submitPayment = useCallback(async (feeAssignmentId: number, amount: number, file: File) => {
+    if (!token) return;
+    
+    try {
+      const uploadRes = await feeAssignmentsApi.uploadPaymentProof(file, token);
+      const imageUrl = uploadRes?.data?.url;
+      const imagePath = uploadRes?.data?.path;
+      
+      if (!imageUrl || !imagePath) {
+        throw new Error("Lỗi khi upload ảnh");
+      }
+
+
+      const payload: CreatePaymentPayload = {
+        feeAssignmentId,
+        amountPaid: amount,
+        imageUrl: imageUrl,
+        imagePath: imagePath
+      };
+
+      await feeAssignmentsApi.createPayment(payload, token);
+
+      toast.success("Gửi yêu cầu thanh toán thành công!", { 
+        description: "BQL sẽ duyệt khoản thanh toán của bạn sớm." 
+      });
+      
+    } catch (error) {
+      console.error(error);
+      toast.error("Gửi thanh toán thất bại", { description: "Vui lòng thử lại sau" });
+      throw error;
+    }
+  }, [token]);
+
   return (
     <FeeContext.Provider
       value={{
@@ -95,6 +131,7 @@ export function FeeProvider({ children }: { children: ReactNode }) {
         getFeeDetail,
         getHouseholdFees,
         approvePayment,
+        submitPayment,
         rejectPayment
       }}
     >

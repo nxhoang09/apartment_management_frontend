@@ -34,6 +34,13 @@ export interface FeeAssignmentItem {
   Payment?: Payment;
 }
 
+export interface CreatePaymentPayload {
+  feeAssignmentId: number;
+  amountPaid: number;
+  imageUrl: string;
+  imagePath: string;
+}
+
 export const feeAssignmentsApi = {
   createAssignment(data: CreateAssignmentDto, token?: string): Promise<any> {
     return apiRequest("/fee/assign", "POST", data, token);
@@ -52,5 +59,21 @@ export const feeAssignmentsApi = {
 
   rejectPayment(paymentId: number, note: string, token?: string): Promise<any> {
     return apiRequest(`/payments/${paymentId}/reject`, "PATCH", { note }, token);
-  }
+  },
+
+  uploadPaymentProof(file: File, token?: string): Promise<any> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    }).then(res => res.json());
+  },
+  
+  createPayment(data: CreatePaymentPayload, token?: string): Promise<any> {
+    return apiRequest("/payments", "POST", data, token);
+  },
 };
