@@ -56,7 +56,6 @@ export function EditTempResidentDialog({ open, onOpenChange, temp, onUpdated }: 
         startDate: formatDateToDisplay(temp.startDate) || "",
         endDate: formatDateToDisplay(temp.endDate) || "",
         reason: temp.reason || "",
-        address: temp.address || "",
       })
       setStep(1)
       setError("")
@@ -128,7 +127,6 @@ export function EditTempResidentDialog({ open, onOpenChange, temp, onUpdated }: 
         startDate: startDateObj?.toISOString(),
         endDate: endDateObj?.toISOString(),
         reason: form.reason || undefined,
-        address: form.address || undefined,
         submittedUserId: user?.id ? Number(user.id) : undefined,
       })
 
@@ -192,7 +190,7 @@ export function EditTempResidentDialog({ open, onOpenChange, temp, onUpdated }: 
             <div>
               <p className="text-sm text-muted-foreground mb-3">Chỉnh sửa thông tin đăng ký tạm trú</p>
               <TempResidentRegistrationStep
-                form={{ startDate: form.startDate, endDate: form.endDate, reason: form.reason, address: form.address }}
+                form={{ startDate: form.startDate, endDate: form.endDate, reason: form.reason }}
                 onFormChange={(updates) => setForm((s: any) => ({ ...s, ...updates }))}
                 dateError={dateError}
                 isLoading={isLoading}

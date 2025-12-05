@@ -46,7 +46,6 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
     startDate: "",
     endDate: "",
     reason: "",
-    address: "",
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -90,7 +89,6 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
       startDate: "",
       endDate: "",
       reason: "",
-      address: "",
     })
   }
 
@@ -181,7 +179,6 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
           startDate: startDateObj?.toISOString(),
           endDate: endDateObj?.toISOString(),
           reason: form.reason || undefined,
-          address: form.address || undefined,
           submittedUserId: Number(user.id),
         })
 
@@ -207,7 +204,6 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
           startDate: startDateObj?.toISOString(),
           endDate: endDateObj?.toISOString(),
           reason: form.reason || undefined,
-          address: form.address || undefined,
           submittedUserId: Number(user.id),
         })
 
@@ -223,7 +219,23 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
         onOpenChange(false)
       }, 800)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Lỗi khi gửi khai báo tạm trú")
+      // Map backend 409 / conflict errors to a friendly, localized message.
+      let friendly = "Lỗi khi gửi khai báo tạm trú"
+      try {
+        const e = err as any
+        const status = e?.status ?? e?.response?.status ?? e?.statusCode
+        const msg = (e?.message ?? String(e ?? "")).toString()
+
+        if (status === 409 || /409/.test(msg) || /conflict/i.test(msg) || (/khai\s*b[aả]o/i.test(msg) && /trước/i.test(msg))) {
+          friendly = "Cư dân đã có khai báo trước đó"
+        } else if (msg) {
+          friendly = msg
+        }
+      } catch (e) {
+        // ignore parsing errors
+      }
+
+      setError(friendly)
     } finally {
       setIsLoading(false)
     }
@@ -396,7 +408,6 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
                 startDate: form.startDate,
                 endDate: form.endDate,
                 reason: form.reason,
-                address: form.address,
               }}
               onFormChange={(updates) => setForm((s) => ({ ...s, ...updates }))}
               dateError={dateError}

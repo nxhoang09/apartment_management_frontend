@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useHousehold } from "@/lib/context/household-context"
 import { Member } from "@/components/resident/member-card"
 import { AddTempResidentDialog } from "@/components/resident/add-temp-resident-dialog"
+import { ConfirmBlockedEdit } from "@/components/resident/confirm-blocked-edit"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
@@ -21,6 +22,8 @@ export default function RegistrationsPage() {
   const { members, deleteMember, household, tempResidents, deleteTempResident, refreshTempResidents } = useHousehold()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [selectedTemp, setSelectedTemp] = useState<any | null>(null)
+  const [blockedDialogOpen, setBlockedDialogOpen] = useState(false)
+  const [blockedMessage, setBlockedMessage] = useState<string | undefined>(undefined)
   const [activeTab, setActiveTab] = useState<'res' | 'abs'>('res')
   // registration context is provided below; we consume it in `AbsentsPanel` so
   // hooks run inside the provider
@@ -47,6 +50,16 @@ export default function RegistrationsPage() {
   const tempRes: TempResident[] = tempResidents || []
 
   const handleEdit = (temp: TempResident) => {
+    // Normalize shape: Temp-absent responses may carry TemporaryAbsence array
+    const ta = (temp as any).TemporaryAbsence?.[0]
+    const status = ta?.informationStatus ?? (temp as any).informationStatus
+    if (status === "APPROVED" || String(status).toUpperCase() === "ENDED") {
+      setBlockedMessage("Cư dân này đã có khai báo được phê duyệt hoặc đã kết thúc — không thể sửa.")
+      setBlockedDialogOpen(true)
+      return
+    }
+
+    setBlockedMessage(undefined)
     setSelectedTemp(temp)
     setIsDialogOpen(true)
   }
@@ -84,6 +97,8 @@ export default function RegistrationsPage() {
         {activeTab === 'res' ? (
           <>
             <p className="text-muted-foreground mb-6">Quản lý các khai báo tạm trú trong hộ khẩu của bạn.</p>
+
+            <ConfirmBlockedEdit open={blockedDialogOpen} onClose={() => setBlockedDialogOpen(false)} message={blockedMessage} />
 
             <TempResidentList
               tempRes={tempRes}
