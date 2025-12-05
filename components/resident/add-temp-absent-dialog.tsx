@@ -79,7 +79,24 @@ export function AddTempAbsentDialog({ open, onOpenChange, members, onAdded }: Ad
       setDestination("")
       setReason("")
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Lỗi khi tạo khai báo tạm vắng")
+      // Map backend 409 / conflict errors to a friendly, localized message.
+      let friendly = "Lỗi khi tạo khai báo tạm vắng"
+      try {
+        const e = err as any
+        const status = e?.status ?? e?.response?.status ?? e?.statusCode
+        const msg = (e?.message ?? String(e ?? "")).toString()
+
+        if (status === 409 || /409/.test(msg) || /conflict/i.test(msg) || /khai\s*b[aả]o/i.test(msg) && /trước/i.test(msg)) {
+          friendly = "Cư dân đã có khai báo trước đó"
+        } else if (msg) {
+          // Prefer server-provided message when available
+          friendly = msg
+        }
+      } catch (e) {
+        // ignore parsing errors and fall back to generic message
+      }
+
+      setError(friendly)
     } finally {
       setIsLoading(false)
     }
@@ -108,11 +125,13 @@ export function AddTempAbsentDialog({ open, onOpenChange, members, onAdded }: Ad
                 <SelectValue placeholder="Chọn thành viên" />
               </SelectTrigger>
               <SelectContent>
-                {members.map((m) => (
-                  <SelectItem key={m.id} value={String(m.id)}>
-                    {m.fullname} — {m.nationalId || ""}
-                  </SelectItem>
-                ))}
+                {members
+                  .map((m) => (
+                    <SelectItem key={m.id} value={String(m.id)}>
+                      {m.fullname} — {m.nationalId || ""}
+                    </SelectItem>
+                  ))}
+
               </SelectContent>
             </Select>
           </div>

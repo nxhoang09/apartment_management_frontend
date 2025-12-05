@@ -9,7 +9,6 @@ interface RegistrationStepProps {
     startDate: string
     endDate: string
     reason: string
-    address: string
   }
   onFormChange: (updates: any) => void
   dateError: string
@@ -51,12 +50,6 @@ export function TempResidentRegistrationStep({
           label="Lý do"
           value={form.reason}
           onChange={(v) => onFormChange({ reason: v })}
-        />
-
-        <FormField
-          label="Địa chỉ tạm trú"
-          value={form.address}
-          onChange={(v) => onFormChange({ address: v })}
         />
       </div>
 

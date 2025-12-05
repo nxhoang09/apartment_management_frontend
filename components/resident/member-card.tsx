@@ -16,6 +16,7 @@ export interface Member {
   phoneNumber: string;
   workingAdress: string;
   placeOfOrigin: string;
+  residentStatus?: string;
   informationStatus?: string;
 }
 
@@ -76,6 +77,7 @@ export const MemberCard = ({ member, onEdit, onDelete }: MemberCardProps) => {
           <MemberInfo label="Quê quán" value={<span className="font-semibold">{member.placeOfOrigin}</span>} />
           {member.email && <MemberInfo label="Email" value={<span className="font-semibold">{member.email}</span>} />}
           <MemberInfo label="SĐT" value={<span className="font-semibold">{member.phoneNumber}</span>} />
+          <MemberInfo label="Trạng thái cư trú" value={<span className="font-semibold">{formatResidenceStatus(member.residentStatus)}</span>} />
         </div>
       </CardContent>
     </Card>
@@ -86,6 +88,27 @@ function formatDate(dateStr: string) {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString("vi-VN");
+}
+
+function formatResidenceStatus(status?: string) {
+  if (!status) return "-"
+  const s = String(status).trim().toUpperCase()
+  switch (s) {
+    case "NORMAL":
+      return "Bình thường"
+    case "TEMP_ABSENT":
+      return "Tạm vắng"
+    case "MOVE_OUT":
+      return "Chuyển đi"
+    case "TEMP_RESIDENT":
+      return "Tạm trú"
+    default:
+      // fallback: try some fuzzy checks
+      const low = s.toLowerCase()
+      if (low.includes("absent") || low.includes("vang")) return "Tạm vắng"
+      if (low.includes("resident") || low.includes("tru")) return "Tạm trú"
+      return status
+  }
 }
 
 const MemberInfo = ({ label, value }: { label: string; value: React.ReactNode }) => (

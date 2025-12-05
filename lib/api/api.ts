@@ -26,6 +26,8 @@ export async function apiRequest(
 
   if (!res.ok) {
     if (res.status === 401) {
+      const res = await fetch(`${API_URL}/auth/refresh`)
+      console.log(res)
       const message = (json && (json.message || json.error)) || "Không có quyền (401). Vui lòng đăng nhập lại."
       throw new Error(message)
     }
