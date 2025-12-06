@@ -86,7 +86,7 @@ export function ReviewTempAbsentDialog({ open, registrationId, onClose, onUpdate
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle>Chi tiết & Duyệt đơn tạm vắng</DialogTitle>
+          <DialogTitle className="text-lg">Chi tiết & Duyệt đơn</DialogTitle>
           <DialogDescription>Xem thông tin cư dân và khai báo trước khi phê duyệt hoặc từ chối.</DialogDescription>
         </DialogHeader>
 
@@ -94,7 +94,7 @@ export function ReviewTempAbsentDialog({ open, registrationId, onClose, onUpdate
         {error && <div className="text-destructive mb-2">{error}</div>}
 
         {detail && (
-          <div className="text-sm">
+          <div className="text">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <div className="text-xs text-muted-foreground">Mã đơn</div>
@@ -162,13 +162,13 @@ export function ReviewTempAbsentDialog({ open, registrationId, onClose, onUpdate
               <div className="font-medium">{detail?.destination ?? "-"}</div>
             </div>
 
-            {detail?.reviewedAdminId && (
+            {detail?.reviewedAdmin && (
               <>
                 <div className="my-2 border-t border-slate-100" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <div className="text-xs text-muted-foreground">Admin duyệt</div>
-                    <div className="font-medium">{detail?.reviewedAdminId ?? "-"}</div>
+                    <div className="font-medium">{detail?.reviewedAdmin?.username ?? "-"}</div>
                   </div>
                   <div>
                     <div className="text-xs text-muted-foreground">Ngày duyệt</div>
