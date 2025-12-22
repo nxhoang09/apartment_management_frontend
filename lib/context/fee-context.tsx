@@ -1,6 +1,6 @@
 "use client"
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
-import { feesApi, type Fee } from "@/lib/api/fee/feesApi"
+import { feesApi, type Fee, type FeeParams } from "@/lib/api/fee/feesApi"
 import { feeAssignmentsApi, FeeAssignmentItem, CreateAssignmentDto } from "@/lib/api/fee/feeAssignmentsApi"
 import { useAuth } from "./auth-context"
 import { toast } from "sonner"
@@ -9,14 +9,19 @@ import { CreatePaymentPayload } from "@/lib/api/fee/feeAssignmentsApi"
 interface FeeContextType {
   fees: Fee[]
   feesLoading: boolean
-  loadFees: () => Promise<void>
+  pagination: {
+    page: number;
+    totalPages: number;
+    total: number;
+  };
+  loadFees: (param?: FeeParams) => Promise<void>
   createFee: (data: Parameters<typeof feesApi.createFee>[0]) => Promise<void>
   updateFee: (id: number, data: Parameters<typeof feesApi.updateFee>[1]) => Promise<void>
   deleteFee: (id: number) => Promise<void>
 
   createAssignment: (data: CreateAssignmentDto) => Promise<void>
   
-  getFeeDetail: (feeId: number) => Promise<Fee & { assignments: FeeAssignmentItem[] }>
+  getFeeDetail: (feeId: number, params?: any) => Promise<any>
   getHouseholdFees: (householdId: number) => Promise<FeeAssignmentItem[]>
 
   approvePayment:(paymentId: number) => Promise<void>
@@ -32,41 +37,75 @@ export function FeeProvider({ children }: { children: ReactNode }) {
   const [fees, setFees] = useState<Fee[]>([])
   const [feesLoading, setFeesLoading] = useState(true)
 
-  const loadFees = useCallback(async () => {
+  const [pagination, setPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0
+  })
+
+  const loadFees = useCallback(async (params?: FeeParams) => {
     try {
       setFeesLoading(true)
-      const response: any = await feesApi.getFees(token || undefined)
-      const data = Array.isArray(response) ? response : (response.data || [])
-      setFees(data)
+      // Dùng 'any' để linh hoạt xử lý cấu trúc JSON trả về
+      const response: any = await feesApi.getFees(params, token || undefined)
+      
+      console.log("API Response chuẩn:", response); 
+
+      // Cấu trúc JSON: { success: true, data: { data: [...], meta: {...} } }
+      
+      // Kiểm tra xem response.data có chứa thuộc tính .data (mảng) và .meta không
+      if (response?.data?.data && Array.isArray(response.data.data)) {
+        // 1. Lấy mảng dữ liệu Fees
+        setFees(response.data.data);
+
+        // 2. Lấy thông tin phân trang Meta
+        if (response.data.meta) {
+          setPagination({
+            page: Number(response.data.meta.page),
+            totalPages: Number(response.data.meta.totalPages),
+            total: Number(response.data.meta.total)
+          });
+        }
+      } 
+      // Fallback: Trường hợp backend trả về mảng trực tiếp (nếu có lỗi gì đó)
+      else if (response?.data && Array.isArray(response.data)) {
+         setFees(response.data);
+         // Fake pagination
+         setPagination({ page: 1, totalPages: 1, total: response.data.length });
+      } else {
+         setFees([]);
+      }
+
     } catch (error) {
-      console.error(error)
+      console.error("Lỗi load fees:", error)
+      setFees([]) 
     } finally {
       setFeesLoading(false)
     }
   }, [token])
 
-  const createFee = useCallback(async (data: any) => {
+ const createFee = useCallback(async (data: any) => {
       await feesApi.createFee(data, token || undefined)
-      await loadFees()
-  }, [loadFees, token])
+      await loadFees({ page: pagination.page }) 
+  }, [loadFees, token, pagination.page])
 
   const updateFee = useCallback(async (id: number, data: any) => {
       await feesApi.updateFee(id, data, token || undefined)
-      await loadFees()
-  }, [loadFees, token])
+      await loadFees({ page: pagination.page })
+  }, [loadFees, token, pagination.page])
 
   const deleteFee = useCallback(async (id: number) => {
       await feesApi.deleteFee(id, token || undefined)
-      await loadFees()
-  }, [loadFees, token])
+      await loadFees({ page: pagination.page })
+  }, [loadFees, token, pagination.page])
 
   // --- ASSIGNMENT ---
   const createAssignment = useCallback(async (data: CreateAssignmentDto) => {
     await feeAssignmentsApi.createAssignment(data, token || undefined)
   }, [token])
 
-  const getFeeDetail = useCallback(async (feeId: number) => {
-    const res = await feeAssignmentsApi.getFeeDetail(feeId, token || undefined)
+  const getFeeDetail = useCallback(async (feeId: number, param?: any) => {
+    const res = await feeAssignmentsApi.getFeeDetail(feeId, param, token || undefined)
     return res.data 
   }, [token])
 
@@ -132,7 +171,8 @@ export function FeeProvider({ children }: { children: ReactNode }) {
         getHouseholdFees,
         approvePayment,
         submitPayment,
-        rejectPayment
+        rejectPayment,
+        pagination
       }}
     >
       {children}

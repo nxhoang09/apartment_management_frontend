@@ -8,32 +8,68 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" 
 import { useFeeContext } from "@/lib/context/fee-context"
 import { Fee } from "@/lib/api/fee/feesApi"
 import { FeeAssignmentItem } from "@/lib/api/fee/feeAssignmentsApi"
-import { Eye, CheckCircle, XCircle } from "lucide-react"
+import { Eye, CheckCircle, XCircle, ChevronLeft, ChevronRight, Filter } from "lucide-react"
+
+// Định nghĩa lại kiểu dữ liệu trả về từ API mới
+interface FeeDetailResponse extends Fee {
+  assignments: {
+    data: FeeAssignmentItem[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }
+  }
+}
 
 export function FeeDetailByFeeModal({ feeId, onClose }: { feeId: number; onClose: () => void }) {
   const { getFeeDetail, approvePayment, rejectPayment } = useFeeContext()
-  const [data, setData] = useState<(Fee & { assignments: FeeAssignmentItem[] }) | null>(null)
+  
+  // State data theo cấu trúc mới
+  const [data, setData] = useState<FeeDetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // State quản lý Phân trang & Lọc
+  const [currentPage, setCurrentPage] = useState(1)
+  const [filterStatus, setFilterStatus] = useState<string>("all") // "all" | "true" | "false"
+
+  // State xử lý modal con (chi tiết thanh toán)
   const [selectedPayment, setSelectedPayment] = useState<FeeAssignmentItem | null>(null)
   const [rejectMode, setRejectMode] = useState(false)
   const [rejectNote, setRejectNote] = useState("")
   const [actionLoading, setActionLoading] = useState(false)
 
+  // Hàm load dữ liệu
   const fetchData = useCallback(() => {
     setLoading(true)
-    getFeeDetail(feeId)
-      .then(setData)
+    // Gọi context với params phân trang & lọc
+    getFeeDetail(feeId, { 
+      page: currentPage, 
+      limit: 10, 
+      isPaid: filterStatus === "all" ? "" : filterStatus 
+    })
+      .then((res) => {
+          setData(res)
+      })
       .catch((e) => console.error(e))
       .finally(() => setLoading(false))
-  }, [feeId, getFeeDetail])
+  }, [feeId, getFeeDetail, currentPage, filterStatus])
 
+  // Gọi API mỗi khi page hoặc filter thay đổi
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  // Khi đổi filter thì reset về trang 1
+  const handleFilterChange = (value: string) => {
+    setFilterStatus(value)
+    setCurrentPage(1)
+  }
 
   const handleCloseDetail = () => {
     setSelectedPayment(null)
@@ -47,7 +83,7 @@ export function FeeDetailByFeeModal({ feeId, onClose }: { feeId: number; onClose
       setActionLoading(true)
       await approvePayment(selectedPayment.Payment.id)
       handleCloseDetail()
-      fetchData()
+      fetchData() // Load lại dữ liệu để cập nhật trạng thái
     } catch (e) {
       console.error(e)
     } finally {
@@ -74,42 +110,70 @@ export function FeeDetailByFeeModal({ feeId, onClose }: { feeId: number; onClose
   return (
     <>
       <Dialog open onOpenChange={onClose}>
-        <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col">
+        <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>Chi tiết thu phí: {loading ? "..." : data?.name}</DialogTitle>
-            <DialogDescription>Danh sách các hộ cần đóng khoản phí này</DialogDescription>
+            <DialogTitle>Chi tiết thu phí: {data?.name || "..."}</DialogTitle>
+            <DialogDescription>
+                Danh sách các hộ và trạng thái đóng tiền
+            </DialogDescription>
           </DialogHeader>
 
-          {loading ? (
-            <div className="py-10 text-center">Đang tải dữ liệu...</div>
-          ) : data ? (
-            <>
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                <div className="bg-muted/50 p-3 rounded">Tổng số hộ: <span className="font-bold">{data.assignments.length}</span></div>
-                <div className="bg-muted/50 p-3 rounded">Đã duyệt: <span className="font-bold text-green-600">{data.assignments.filter(a => a.isPaid).length}</span></div>
-                <div className="bg-muted/50 p-3 rounded">Chờ duyệt: <span className="font-bold text-yellow-600">{data.assignments.filter(a => a.Payment?.status === "PENDING").length}</span></div>
-              </div>
-              
-              <ScrollArea className="flex-1 border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Mã hộ</TableHead>
-                      <TableHead>Chủ hộ</TableHead>
-                      <TableHead>Số tiền</TableHead>
-                      <TableHead>Hạn nộp</TableHead>
-                      <TableHead>Trạng thái</TableHead>
-                      <TableHead className="text-right">Chi tiết</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.assignments.map((item) => (
+          {/* --- THANH CÔNG CỤ: FILTER --- */}
+          <div className="flex items-center justify-between py-2 gap-4">
+             <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Lọc trạng thái:</span>
+                <Select value={filterStatus} onValueChange={handleFilterChange}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Chọn trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="true">Đã thanh toán</SelectItem>
+                    <SelectItem value="false">Chưa thanh toán</SelectItem>
+                  </SelectContent>
+                </Select>
+             </div>
+             
+             {data?.assignments?.meta && (
+               <div className="text-sm text-muted-foreground">
+                 Tổng cộng: <b>{data.assignments.meta.total}</b> hộ
+               </div>
+             )}
+          </div>
+
+          {/* --- BẢNG DỮ LIỆU --- */}
+          <div className="flex-1 overflow-hidden border rounded-md relative min-h-[300px]">
+            {loading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-10 backdrop-blur-sm">
+                    Đang tải dữ liệu...
+                </div>
+            )}
+
+            <ScrollArea className="h-[400px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Mã hộ</TableHead>
+                    <TableHead>Chủ hộ</TableHead>
+                    <TableHead>Phòng</TableHead>
+                    <TableHead>Số tiền</TableHead>
+                    <TableHead>Hạn nộp</TableHead>
+                    <TableHead>Trạng thái</TableHead>
+                    <TableHead className="text-right">Chi tiết</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data?.assignments?.data?.length ? (
+                    data.assignments.data.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.household?.houseHoldCode}</TableCell>
                         <TableCell>{item.household?.head?.fullname || "N/A"}</TableCell>
+                        <TableCell>{item.household?.apartmentNumber || "-"}</TableCell>
                         <TableCell>{item.amountDue.toLocaleString()} đ</TableCell>
                         <TableCell>{new Date(item.dueDate).toLocaleDateString("vi-VN")}</TableCell>
                         <TableCell>
+                           {/* Logic hiển thị Badge trạng thái */}
                            <Badge 
                             variant={item.isPaid ? "default" : "secondary"}
                             className={
@@ -118,7 +182,7 @@ export function FeeDetailByFeeModal({ feeId, onClose }: { feeId: number; onClose
                                item.Payment?.status === "PENDING" ? "bg-yellow-500 hover:bg-yellow-600" : "bg-gray-400")
                            }
                           >
-                            {item.isPaid ? "Đã duyệt" : 
+                            {item.isPaid ? "Đã nộp" : 
                              item.Payment?.status === "REJECTED" ? "Bị từ chối" :
                              item.Payment?.status === "PENDING" ? "Chờ duyệt" : "Chưa nộp"}
                           </Badge>
@@ -131,18 +195,52 @@ export function FeeDetailByFeeModal({ feeId, onClose }: { feeId: number; onClose
                           )}
                         </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </>
-          ) : (
-            <div className="py-10 text-center text-red-500">Không tìm thấy dữ liệu</div>
+                    ))
+                  ) : (
+                    !loading && (
+                        <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                Không tìm thấy dữ liệu nào.
+                            </TableCell>
+                        </TableRow>
+                    )
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </div>
+
+          {/* --- THANH PHÂN TRANG --- */}
+          {data?.assignments?.meta && (
+            <div className="flex items-center justify-end space-x-2 pt-4">
+                <div className="text-sm text-muted-foreground mr-4">
+                    Trang {data.assignments.meta.page} / {data.assignments.meta.totalPages || 1}
+                </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1 || loading}
+                >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Trước
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    disabled={currentPage >= data.assignments.meta.totalPages || loading}
+                >
+                    Sau
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+            </div>
           )}
+
         </DialogContent>
       </Dialog>
 
-      {/* Payment Detail Dialog */}
+      {/* --- MODAL CHI TIẾT THANH TOÁN (Giữ nguyên logic cũ) --- */}
       {selectedPayment && (
         <Dialog open={!!selectedPayment} onOpenChange={(open) => !open && handleCloseDetail()}>
           <DialogContent className="max-w-xl">
@@ -154,6 +252,7 @@ export function FeeDetailByFeeModal({ feeId, onClose }: { feeId: number; onClose
             </DialogHeader>
             
             <div className="space-y-4">
+               {/* Thông tin tiền & trạng thái */}
                <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Số tiền</p>
@@ -167,7 +266,7 @@ export function FeeDetailByFeeModal({ feeId, onClose }: { feeId: number; onClose
                 </div>
               </div>
 
-               {/* Hiển thị ảnh */}
+               {/* Ảnh minh chứng */}
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-2">Ảnh minh chứng</p>
                 <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-muted">
@@ -184,7 +283,7 @@ export function FeeDetailByFeeModal({ feeId, onClose }: { feeId: number; onClose
                 </div>
               </div>
 
-               {/* Nếu REJECTED thì hiện note */}
+               {/* Lý do từ chối (Nếu có) */}
                {selectedPayment.Payment?.status === "REJECTED" && selectedPayment.Payment.note && (
                 <div className="bg-red-50 p-3 rounded-md border border-red-200">
                    <p className="text-sm font-bold text-red-600 mb-1">Lý do từ chối:</p>
@@ -192,7 +291,7 @@ export function FeeDetailByFeeModal({ feeId, onClose }: { feeId: number; onClose
                 </div>
               )}
 
-              {/* ACTION: Chỉ hiện khi PENDING */}
+              {/* Action Buttons (Chỉ hiện khi PENDING) */}
               {selectedPayment.Payment?.status === "PENDING" && (
                 <div className="mt-4 border-t pt-4">
                   {!rejectMode ? (
