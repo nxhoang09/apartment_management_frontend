@@ -1,21 +1,12 @@
 "use client"
 
-import { useEffect, useRef } from "react"
 import { FeeList } from "@/components/admin/fees/fee-list"
 import { FeeAssignmentList } from "@/components/admin/fees/fee-assignment-list"
 import { FeeProvider, useFeeContext } from "@/lib/context/fee-context"
 
 function FeesManagementContent() {
-  const { loadFees, feesLoading, feesError } = useFeeContext()
-  
-  const initialized = useRef(false)
-
-  useEffect(() => {
-    if (!initialized.current) {
-      initialized.current = true
-      loadFees()
-    }
-  }, [loadFees])
+  // Bỏ loadFees ở đây, chỉ lấy error nếu cần hiển thị lỗi chung
+  const { feesError } = useFeeContext() 
 
   return (
     <main className="container mx-auto py-8 px-4">
@@ -31,18 +22,13 @@ function FeesManagementContent() {
       )}
 
       <div className="space-y-8">
-        {/* Phần 1: Quản lý danh sách các loại phí (CRUD) */}
+        {/* Phần 1: FeeList sẽ TỰ GỌI API khi nó được mount */}
         <section>
-          {feesLoading ? (
-            <div className="text-center py-8">Đang tải danh sách phí...</div>
-          ) : (
             <FeeList />
-          )}
         </section>
 
-        {/* Phần 2: Quản lý gán phí và theo dõi thu nộp (Giao diện Tabs mới) */}
+        {/* Phần 2 */}
         <section>
-             {/* FeeAssignmentList mới tự quản lý loading state nội bộ hoặc dùng chung fees */}
             <FeeAssignmentList />
         </section>
       </div>

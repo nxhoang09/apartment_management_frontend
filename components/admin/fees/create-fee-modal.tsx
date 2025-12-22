@@ -15,7 +15,7 @@ import { Fee } from "@/lib/api/fee/feesApi"
 interface CreateFeeModalProps {
   onClose: () => void
   onSuccess: () => void
-  feeToEdit?: Fee | null // Thêm prop này để nhận biết đang sửa
+  feeToEdit?: Fee | null
 }
 
 export function CreateFeeModal({
@@ -29,7 +29,7 @@ export function CreateFeeModal({
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    type: "",
+    type: "", // Mặc định rỗng để user phải chọn
     frequency: "",
     ratePerPerson: "",
     minium: "",
@@ -37,7 +37,6 @@ export function CreateFeeModal({
     endDate: "",
   })
 
-  // Đổ dữ liệu vào form khi mở modal ở chế độ Edit
   useEffect(() => {
     if (feeToEdit) {
       setFormData({
@@ -45,14 +44,25 @@ export function CreateFeeModal({
         description: feeToEdit.description || "",
         type: feeToEdit.type,
         frequency: feeToEdit.frequency,
-        ratePerPerson: feeToEdit.ratePerPerson.toString(),
+        ratePerPerson: feeToEdit.ratePerPerson ? feeToEdit.ratePerPerson.toString() : "",
         minium: feeToEdit.minium ? feeToEdit.minium.toString() : "",
-        // Chuyển đổi ngày từ ISO string sang YYYY-MM-DD cho input type="date"
         startDate: feeToEdit.startDate ? new Date(feeToEdit.startDate).toISOString().split('T')[0] : "",
         endDate: feeToEdit.endDate ? new Date(feeToEdit.endDate).toISOString().split('T')[0] : "",
       })
     }
   }, [feeToEdit])
+
+  // Hàm xử lý logic khi thay đổi Loại phí
+  const handleTypeChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      type: value,
+      // Nếu chọn MANDATORY (Bắt buộc) -> Xóa minium
+      // Nếu chọn VOLUNTARY (Tự nguyện) -> Xóa ratePerPerson
+      minium: value === 'MANDATORY' ? "" : prev.minium,
+      ratePerPerson: value === 'VOLUNTARY' ? "" : prev.ratePerPerson
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,17 +75,15 @@ export function CreateFeeModal({
         type: formData.type,
         frequency: formData.frequency,
         ratePerPerson: formData.ratePerPerson ? Number.parseFloat(formData.ratePerPerson) : 0,
-        minium: formData.minium ? Number.parseFloat(formData.minium) : undefined,
+        minium: formData.minium ? Number.parseFloat(formData.minium) : 0,
         startDate: formData.startDate,
         endDate: formData.endDate,
       }
 
       if (feeToEdit) {
-        // Gọi hàm update nếu đang sửa
         await updateFee(feeToEdit.id, payload)
         toast.success("Thành công", { description: "Đã cập nhật khoản phí" })
       } else {
-        // Gọi hàm create nếu đang tạo mới
         await createFee(payload)
         toast.success("Thành công", { description: "Khoản phí đã được tạo" })
       }
@@ -89,6 +97,10 @@ export function CreateFeeModal({
       setLoading(false)
     }
   }
+
+  // Biến kiểm tra để disable input
+  const isMandatory = formData.type === 'MANDATORY';
+  const isVoluntary = formData.type === 'VOLUNTARY';
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -127,7 +139,7 @@ export function CreateFeeModal({
               <Label htmlFor="type">Loại *</Label>
               <Select 
                 value={formData.type} 
-                onValueChange={(value) => setFormData({ ...formData, type: value })}
+                onValueChange={handleTypeChange} // Sử dụng hàm handle riêng
               >
                 <SelectTrigger id="type">
                   <SelectValue placeholder="Chọn loại" />
@@ -159,24 +171,34 @@ export function CreateFeeModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="ratePerPerson">Tỉ lệ/người</Label>
+              <Label htmlFor="ratePerPerson" className={isVoluntary ? "text-gray-400" : ""}>
+                Tỉ lệ/người {isMandatory && <span className="text-red-500">*</span>}
+              </Label>
               <Input
                 id="ratePerPerson"
                 type="number"
                 value={formData.ratePerPerson}
                 onChange={(e) => setFormData({ ...formData, ratePerPerson: e.target.value })}
                 placeholder="0"
+                disabled={isVoluntary} // Disable nếu là Tự nguyện
+                className={isVoluntary ? "bg-gray-100" : ""}
+                required={isMandatory} // Bắt buộc nhập nếu là loại Bắt buộc
               />
             </div>
 
             <div>
-              <Label htmlFor="minium">Tối thiểu</Label>
+              <Label htmlFor="minium" className={isMandatory ? "text-gray-400" : ""}>
+                Tối thiểu {isVoluntary && <span className="text-red-500">*</span>}
+              </Label>
               <Input
                 id="minium"
                 type="number"
                 value={formData.minium}
                 onChange={(e) => setFormData({ ...formData, minium: e.target.value })}
                 placeholder="0"
+                disabled={isMandatory} // Disable nếu là Bắt buộc
+                className={isMandatory ? "bg-gray-100" : ""}
+                required={isVoluntary} // Bắt buộc nhập nếu là loại Tự nguyện
               />
             </div>
           </div>

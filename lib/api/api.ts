@@ -71,8 +71,17 @@ export async function updateHouseHoldInfo(data: any, token?: string) {
 }
 
 
-export async function adminGetAllHouseholds(token?: string) { 
-  return apiRequest("/admin", "GET", undefined, token); 
+export async function adminGetAllHouseholds(
+  token?: string, 
+  params?: { page?: number; limit?: number; search?: string }
+) { 
+  const query = new URLSearchParams();
+  if (params?.page) query.append("page", params.page.toString());
+  if (params?.limit) query.append("limit", params.limit.toString());
+  if (params?.search) query.append("search", params.search);
+
+  const url = `/admin?${query.toString()}`;
+  return apiRequest(url, "GET", undefined, token); 
 }
 
 export async function createTempResidentRegis(data: any, token?: string){

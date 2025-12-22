@@ -40,14 +40,24 @@ export interface CreatePaymentPayload {
   imageUrl: string;
   imagePath: string;
 }
+export interface FeeDetailParams {
+  page?: number;
+  limit?: number;
+  isPaid?: string;
+}
 
 export const feeAssignmentsApi = {
   createAssignment(data: CreateAssignmentDto, token?: string): Promise<any> {
     return apiRequest("/fee/assign", "POST", data, token);
   },
 
-  getFeeDetail(feeId: number, token?: string): Promise<any> {
-    return apiRequest(`/fee/${feeId}/detail`, "GET", undefined, token);
+ getFeeDetail(feeId: number, params?: FeeDetailParams, token?: string): Promise<any> {
+    const query = new URLSearchParams();
+    if (params?.page) query.append("page", params.page.toString());
+    if (params?.limit) query.append("limit", params.limit.toString());
+    if (params?.isPaid) query.append("isPaid", params.isPaid);
+
+    return apiRequest(`/fee/${feeId}/detail?${query.toString()}`, "GET", undefined, token);
   },
 
   getHouseholdFees(householdId: number, token?: string): Promise<any> {

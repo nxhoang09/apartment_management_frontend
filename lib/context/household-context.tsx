@@ -80,7 +80,7 @@ const HOUSEHOLD_STORAGE_KEY = "household_info"
 const MEMBERS_STORAGE_KEY = "household_members"
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
-  const { token, isLoading: isAuthLoading } = useAuth()
+  const { token, user, isLoading: isAuthLoading } = useAuth()
   const [household, setHousehold] = useState<HouseholdData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [members, setMembers] = useState<ResidentMember[]>([])
@@ -99,7 +99,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   }
 
   const refreshHousehold = async () => {
-    if (!token) {
+    if (!token || user?.role === "ADMIN") {
       clearHousehold()
       return
     }
