@@ -26,16 +26,14 @@ export function FeeAssignmentList() {
 
   return (
     <Card className="w-full p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold">Quản lý thu phí</h2>
-        <Button onClick={() => setShowCreateModal(true)}>+ Gán phí mới</Button>
-      </div>
-
       <Tabs defaultValue="by-fee" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="by-fee">Theo Khoản Phí</TabsTrigger>
-          <TabsTrigger value="by-household">Theo Hộ Dân</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between mb-4">
+          <TabsList>
+            <TabsTrigger value="by-fee">Theo Khoản Phí</TabsTrigger>
+            <TabsTrigger value="by-household">Theo Hộ Dân</TabsTrigger>
+          </TabsList>
+          <Button onClick={() => setShowCreateModal(true)}>+ Gán phí mới</Button>
+        </div>
 
         {/* VIEW 1: DANH SÁCH CÁC KHOẢN PHÍ */}
         <TabsContent value="by-fee">

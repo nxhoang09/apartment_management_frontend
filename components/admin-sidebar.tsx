@@ -25,6 +25,11 @@ const menuItems = [
     icon: Users,
   },
   {
+    title: "Tài khoản và căn hộ",
+    href: "/admin/accounts",
+    icon: Users,
+  },
+  {
     title: "Quản lý khai báo",
     href: "/admin/registrations",
     icon: FileText,

@@ -75,7 +75,6 @@ export function FeeList() {
     <Card className="w-full">
       <div className="p-6">
         <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
-          <h2 className="text-2xl font-bold">Danh sách loại phí</h2>
           
           <div className="flex items-center gap-2 w-full md:w-auto">
              {/* Ô Tìm Kiếm */}
