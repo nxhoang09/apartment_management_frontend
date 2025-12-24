@@ -24,9 +24,13 @@ interface MemberCardProps {
   member: Member;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  disabledActions?: boolean;
 }
 
-export const MemberCard = ({ member, onEdit, onDelete }: MemberCardProps) => {
+export const MemberCard = ({ member, onEdit, onDelete, disabledActions }: MemberCardProps) => {
+  const status = (member.informationStatus || "").toUpperCase()
+  const locked = status === "DELETING" || status === "ENDED"
+  const disabled = !!disabledActions || locked
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -55,6 +59,8 @@ export const MemberCard = ({ member, onEdit, onDelete }: MemberCardProps) => {
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
+              disabled={disabled}
+              title={disabled ? "Không thể chỉnh sửa khi thông tin ở trạng thái kết thúc/xóa" : undefined}
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -63,6 +69,8 @@ export const MemberCard = ({ member, onEdit, onDelete }: MemberCardProps) => {
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+              disabled={disabled}
+              title={disabled ? "Không thể xóa khi thông tin ở trạng thái kết thúc/xóa" : undefined}
             >
               <Trash2 className="h-4 w-4" />
             </Button>

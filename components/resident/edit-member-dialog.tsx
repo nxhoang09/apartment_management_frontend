@@ -33,6 +33,7 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdateMember }:
     placeOfOrigin: member.placeOfOrigin,
     occupation: member.occupation,
     workingAdress: member.workingAdress,
+    updateReason: "",
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -48,6 +49,9 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdateMember }:
         const parsed = parseDDMMYYYY(formData.dateOfBirth)
         if (!parsed) throw new Error("Ngày sinh không hợp lệ. Vui lòng dùng dd/mm/yyyy")
         payload.dateOfBirth = parsed
+      }
+      if (formData.updateReason) {
+        payload.updateReason = formData.updateReason
       }
       await onUpdateMember(String(member.id), payload)
       onOpenChange(false)
@@ -189,6 +193,16 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdateMember }:
                 onChange={(e) => setFormData({ ...formData, workingAdress: e.target.value })}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="updateReason">Lý do sửa</Label>
+            <Input
+              id="updateReason"
+              value={formData.updateReason}
+              onChange={(e) => setFormData({ ...formData, updateReason: e.target.value })}
+              placeholder="Mô tả lý do chỉnh sửa thông tin"
+            />
           </div>
 
           <div className="flex gap-3 justify-end pt-4">

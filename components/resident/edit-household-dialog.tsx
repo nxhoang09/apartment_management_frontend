@@ -27,6 +27,7 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
     ward: household.ward,
     province: household.province,
     headID: household.headID?.toString() || "",
+    updateReason: "",
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -34,6 +35,21 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    const newHeadId = formData.headID ? Number.parseInt(formData.headID) : undefined
+    const hasAddressChanges =
+      formData.apartmentNumber !== household.apartmentNumber ||
+      formData.buildingNumber !== household.buildingNumber ||
+      formData.street !== household.street ||
+      formData.ward !== household.ward ||
+      formData.province !== household.province
+    const headChanged = newHeadId !== undefined && newHeadId !== household.headID
+    const hasChanges = hasAddressChanges || headChanged
+
+    if (!hasChanges) {
+      onOpenChange(false)
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -45,11 +61,15 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
         province: formData.province,
       }
 
-      // Only include headID if it was changed
-      if (formData.headID && Number.parseInt(formData.headID) !== household.headID) {
-        updateData.headID = Number.parseInt(formData.headID)
+      if (headChanged && newHeadId !== undefined) {
+        updateData.headID = newHeadId
       }
 
+      if (formData.updateReason) {
+        updateData.updateReason = formData.updateReason
+      }
+
+      console.log("[EditHouseholdDialog] Payload gửi:", updateData)
       await updateHousehold(updateData)
       onOpenChange(false)
     } catch (err) {
@@ -136,6 +156,16 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
                 onChange={(e) => setFormData({ ...formData, province: e.target.value })}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="updateReason">Lý do thay đổi</Label>
+            <Input
+              id="updateReason"
+              value={formData.updateReason}
+              onChange={(e) => setFormData({ ...formData, updateReason: e.target.value })}
+              placeholder="Mô tả ngắn gọn lý do chỉnh sửa"
+            />
           </div>
 
           <div className="flex gap-3 justify-end pt-4">

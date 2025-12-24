@@ -33,12 +33,25 @@ export default function ResidentPage() {
 
   // Mở dialog sửa
   const handleEditMember = (member: Member) => {
+    const status = (member.informationStatus || "").toUpperCase()
+    const lockedHousehold = ((household.household.informationStatus || "").toUpperCase()) === "DELETING" || ((household.household.informationStatus || "").toUpperCase()) === "ENDED"
+    const lockedMember = status === "DELETING" || status === "ENDED"
+    if (lockedHousehold || lockedMember) {
+      return
+    }
     setSelectedMember(member)
     setIsEditDialogOpen(true)
   }
 
   // Khi bấm xóa, chỉ mở dialog xác nhận
   const handleDeleteMember = (id: string) => {
+    const m = members.find(x => x.id === id)
+    const status = (m?.informationStatus || "").toUpperCase()
+    const lockedHousehold = ((household.household.informationStatus || "").toUpperCase()) === "DELETING" || ((household.household.informationStatus || "").toUpperCase()) === "ENDED"
+    const lockedMember = status === "DELETING" || status === "ENDED"
+    if (lockedHousehold || lockedMember) {
+      return
+    }
     setConfirmDeleteId(id)
   }
 
@@ -83,6 +96,15 @@ export default function ResidentPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {(() => {
+          const status = (household.household.informationStatus || "").toUpperCase()
+          const locked = status === "DELETING" || status === "ENDED"
+          return locked ? (
+            <div className="mb-4 p-3 border rounded text-sm text-muted-foreground bg-muted">
+              Thông tin hộ khẩu đang ở trạng thái "{household.household.informationStatus}". Các thao tác sửa/xóa tạm thời bị khóa.
+            </div>
+          ) : null
+        })()}
         {/* Banner chào người dùng
         <WelcomeBanner userName={user.username} /> */}
         {/* Sidebar is provided by resident layout */}
@@ -96,13 +118,18 @@ export default function ResidentPage() {
                   street: household.household.street,
                   ward: household.household.ward,
                   province: household.household.province,
-                  status: household.household.status,
+              status: household.household.status,
+              informationStatus: household.household.informationStatus,
                   head: household.head?.fullname ?? "Chưa có chủ hộ",
                 }}
           onEdit={()=>{
             console.log(">> Bấm nút Chỉnh sửa hộ khẩu")
             setIsEditHouseholdOpen(true)
           }} 
+          disableEdit={(() => {
+            const status = (household.household.informationStatus || "").toUpperCase()
+            return status === "DELETING" || status === "ENDED"
+          })()}
         />
         <EditHouseholdDialog
           household={household.household}
@@ -116,6 +143,10 @@ export default function ResidentPage() {
           onAddMember={() => setIsDialogOpen(true)}
           onEditMember={handleEditMember}
           onDeleteMember={handleDeleteMember}
+          disabledActions={(() => {
+            const status = (household.household.informationStatus || "").toUpperCase()
+            return status === "DELETING" || status === "ENDED"
+          })()}
         />
 
         {/* Dialog thêm thành viên  */}

@@ -42,11 +42,12 @@ export interface Household {
   ward: string
   province: string
   status: string
+  informationStatus?: string
+  updateReason?: string
   createtime: string
   headID: number
   userID: number
-}
-
+ }
 export interface HouseholdData {
   household: Household
   head: {

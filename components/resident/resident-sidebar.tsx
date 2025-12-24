@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Home, User, FileText, Bell, Settings, LogOut, ChevronLeft, Menu, Receipt } from "lucide-react"
+import { Home, FileText, Bell, Settings, LogOut, ChevronLeft, Menu, Receipt, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useAuth } from "@/lib/context/auth-context"
@@ -19,11 +19,6 @@ const menuItems = [
     title: "Trang chủ",
     href: "/resident",
     icon: Home,
-  },
-  {
-    title: "Thông tin cá nhân",
-    href: "/resident/profile",
-    icon: User,
   },
     {
     title: "Khai báo",
