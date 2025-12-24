@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertCircle } from "lucide-react"
 import { useAuth } from "@/lib/context/auth-context"
 import { apiRequest } from "@/lib/api/api"
@@ -96,6 +97,7 @@ export default function AccountsAndApartmentsPage() {
   const { token } = useAuth()
   const [activeTab, setActiveTab] = useState<"accounts" | "details">("accounts")
   const [searchTerm, setSearchTerm] = useState("")
+  const [currentSearchTerm, setCurrentSearchTerm] = useState("")
   const [accounts, setAccounts] = useState<UserAccount[]>([])
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
@@ -118,6 +120,12 @@ export default function AccountsAndApartmentsPage() {
   const [approvalLoading, setApprovalLoading] = useState(false)
   const [approvalMessage, setApprovalMessage] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState("")
+  
+  // Role assignment
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false)
+  const [selectedRole, setSelectedRole] = useState<"USER" | "ADMIN" | "ACCOUNTANT">("USER")
+  const [roleLoading, setRoleLoading] = useState(false)
+  const [roleMessage, setRoleMessage] = useState<string | null>(null)
   const [resetLoading, setResetLoading] = useState(false)
   const [resetMessage, setResetMessage] = useState<string | null>(null)
   // Resident approval states
@@ -133,21 +141,15 @@ export default function AccountsAndApartmentsPage() {
     setError(null)
     try {
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : ""
+      setCurrentSearchTerm(search || "")
       const res = await apiRequest(`/user/all?page=${page}&limit=${limit}${searchParam}`, "GET", undefined, token ?? undefined)
       const data = res as ApiResponse
       const inner = data.data
       setAccounts(inner.items || [])
       setTotal(Number(inner.total || 0))
-      const pagesFromApi = Number(inner?.totalPages)
-      const apiLimit = Number(inner?.limit)
-      const effectiveLimit = Number.isFinite(apiLimit) && apiLimit > 0 ? apiLimit : limit
-      const computed = Math.max(1, Math.ceil(Number(inner.total || 0) / effectiveLimit))
-      const nextPages = Number.isFinite(pagesFromApi) && pagesFromApi > 0 ? pagesFromApi : computed
-      const willDisableNext = page >= nextPages
-      setTotalPages(nextPages)
-      if (page > nextPages) {
-        // Clamp current page if it exceeds new total pages
-        setPage(nextPages)
+      setTotalPages(Number(inner.totalPages || 1))
+      if (page > Number(inner.totalPages || 1)) {
+        setPage(Number(inner.totalPages || 1))
       }
     } catch (err: any) {
       setError(err?.message ?? "Không thể tải danh sách tài khoản")
@@ -160,9 +162,9 @@ export default function AccountsAndApartmentsPage() {
 
   useEffect(() => {
     if (token) {
-      void loadAccounts()
+      void loadAccounts(currentSearchTerm)
     }
-  }, [token, loadAccounts])
+  }, [token, page, limit])
 
   // Search is now done server-side via API
   const filteredAccounts = accounts
@@ -238,6 +240,36 @@ export default function AccountsAndApartmentsPage() {
       setResetMessage(msg)
     } finally {
       setResetLoading(false)
+    }
+  }
+
+  const handleOpenRoleDialog = () => {
+    if (detail) {
+      setSelectedRole(detail.role as "USER" | "ADMIN" | "ACCOUNTANT")
+      setRoleMessage(null)
+      setRoleDialogOpen(true)
+    }
+  }
+
+  const handleAssignRole = async () => {
+    if (!detail?.id) return
+    
+    setRoleLoading(true)
+    setRoleMessage(null)
+    try {
+      await apiRequest("/user/role-update", "PATCH", { userId: detail.id, role: selectedRole }, token ?? undefined)
+      setRoleMessage("Đổi quyền thành công")
+      // Update detail
+      setDetail({ ...detail, role: selectedRole })
+      // Reload accounts list
+      await loadAccounts()
+      setTimeout(() => {
+        setRoleDialogOpen(false)
+      }, 1500)
+    } catch (err: any) {
+      setRoleMessage(err?.message || "Đổi quyền thất bại")
+    } finally {
+      setRoleLoading(false)
     }
   }
 
@@ -462,6 +494,12 @@ export default function AccountsAndApartmentsPage() {
 
             {error && <div className="mb-4 p-4 bg-red-50 text-red-600 rounded-lg">{error}</div>}
 
+            {!loading && currentSearchTerm && accounts.length === 0 && (
+              <div className="mb-4 p-4 bg-yellow-50 text-yellow-700 rounded-lg">
+                Không tìm thấy kết quả cho từ khóa "{currentSearchTerm}"
+              </div>
+            )}
+
             <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
               <DialogContent>
                 <DialogHeader>
@@ -518,7 +556,7 @@ export default function AccountsAndApartmentsPage() {
                             />
                           </TableCell>
                           <TableCell>{account.email}</TableCell>
-                          <TableCell>{account.role === "ADMIN" ? "Quản trị viên" : "Cư dân"}</TableCell>
+                          <TableCell>{getDisplayValue(account.role, RoleMap)}</TableCell>
                           <TableCell>
                             <span className={`px-2 py-1 rounded text-sm ${
                               account.state === "ACTIVE" ? "bg-green-100 text-green-800" :
@@ -654,16 +692,28 @@ export default function AccountsAndApartmentsPage() {
                     <div>
                       <div className="flex items-center justify-between mb-3">
                         <div className="font-semibold text-base">Thông tin tài khoản</div>
-                        {detail?.id && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleResetPassword(detail.id)}
-                            disabled={resetLoading}
-                          >
-                            {resetLoading ? "Đang reset..." : "Reset mật khẩu"}
-                          </Button>
-                        )}
+                        <div className="flex gap-2">
+                          {detail?.id && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleOpenRoleDialog}
+                                disabled={detail.state !== "ACTIVE"}
+                              >
+                                Cấp quyền
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleResetPassword(detail.id)}
+                                disabled={resetLoading || detail.state !== "ACTIVE"}
+                              >
+                                {resetLoading ? "Đang reset..." : "Reset mật khẩu"}
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     {resetMessage && (
                       <div className="text-base text-muted-foreground mb-2">{resetMessage}</div>
@@ -725,7 +775,7 @@ export default function AccountsAndApartmentsPage() {
                         <Button
                           size="sm"
                           onClick={handleCheckHouseholdChanges}
-                          disabled={approvalLoading}
+                          disabled={approvalLoading || detail.state !== "ACTIVE"}
                         >
                           {approvalLoading ? "Đang tải..." : "Duyệt thông tin"}
                         </Button>
@@ -808,7 +858,7 @@ export default function AccountsAndApartmentsPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleCheckResidentChanges(r.id ?? r.residentId!)}
-                                disabled={r.informationStatus !== "PENDING" || (residentApprovalLoading && selectedResidentId === (r.id ?? r.residentId))}
+                                disabled={r.informationStatus !== "PENDING" || (residentApprovalLoading && selectedResidentId === (r.id ?? r.residentId)) || detail.state !== "ACTIVE"}
                               >
                                 {residentApprovalLoading && selectedResidentId === (r.id ?? r.residentId) ? "Đang tải..." : "Duyệt"}
                               </Button>
@@ -969,6 +1019,50 @@ export default function AccountsAndApartmentsPage() {
               disabled={residentApprovalLoading}
             >
               {residentApprovalLoading ? "Đang xử lý..." : "Duyệt"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Assignment Dialog */}
+      <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cấp quyền tài khoản</DialogTitle>
+            <DialogDescription>
+              Chọn quyền cho tài khoản <span className="font-medium">{detail?.username}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          {roleMessage && (
+            <Alert variant={roleMessage.includes("thành công") ? "default" : "destructive"}>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{roleMessage}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="role-select">Quyền hạn</Label>
+              <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as "USER" | "ADMIN" | "ACCOUNTANT")}>
+                <SelectTrigger id="role-select">
+                  <SelectValue placeholder="Chọn quyền" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USER">User - Người dùng</SelectItem>
+                  <SelectItem value="ADMIN">Admin - Quản trị viên</SelectItem>
+                  <SelectItem value="ACCOUNTANT">Accountant - Kế toán</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="justify-end gap-2">
+            <Button variant="outline" onClick={() => setRoleDialogOpen(false)} disabled={roleLoading}>
+              Hủy
+            </Button>
+            <Button onClick={handleAssignRole} disabled={roleLoading}>
+              {roleLoading ? "Đang xử lý..." : "Xác nhận"}
             </Button>
           </DialogFooter>
         </DialogContent>
