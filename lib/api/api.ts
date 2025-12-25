@@ -7,14 +7,24 @@ export async function apiRequest(
   data?: any,
   token?: string
 ) {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {};
+  
+  // Only set Content-Type for non-FormData requests
+  const isFormData = data instanceof FormData;
+  if (!isFormData) {
+    headers["Content-Type"] = "application/json";
+  }
+  
   if (token) headers["Authorization"] = `Bearer ${token}`;
   const options: RequestInit = {
     method,
     headers,
     credentials: "include",
   };
-  if (data && method !== "GET") options.body = JSON.stringify(data);
+  
+  if (data && method !== "GET") {
+    options.body = isFormData ? data : JSON.stringify(data);
+  }
 
   const res = await fetch(`${API_URL}${url}`, options);
   let json: any = null

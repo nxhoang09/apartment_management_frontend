@@ -40,6 +40,11 @@ const menuItems = [
     icon: FileText,
   },
   {
+    title: "Quản lý phí v2",
+    href: "/admin/fees2",
+    icon: FileText,
+  },
+  {
     title: "Thông báo",
     href: "/admin/announcements",
     icon: Bell,
