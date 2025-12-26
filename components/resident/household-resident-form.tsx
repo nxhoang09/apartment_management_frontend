@@ -33,6 +33,8 @@ export default function HouseholdResidentForm({
         street: "",
         ward: "",
         province: "",
+        numMotorbike: 0,
+        numCars: 0,
       },
       resident: {
         nationalId: "",
@@ -77,6 +79,8 @@ export default function HouseholdResidentForm({
         household: {
           ...formData.household,
           houseHoldCode: formData.household.houseHoldCode === "" ? 0 : Number(formData.household.houseHoldCode),
+          numMotorbike: Number(formData.household.numMotorbike) || 0,
+          numCars: Number(formData.household.numCars) || 0,
         },
       }
       await createHouseholdAndHead(submitData, token)
@@ -172,6 +176,32 @@ export default function HouseholdResidentForm({
                 placeholder="Nhập tỉnh/thành phố"
                 required
               />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="household.numMotorbike">Số xe máy</Label>
+                <Input
+                  id="household.numMotorbike"
+                  name="household.numMotorbike"
+                  type="number"
+                  min="0"
+                  value={formData.household.numMotorbike}
+                  onChange={handleChange}
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <Label htmlFor="household.numCars">Số xe ô tô</Label>
+                <Input
+                  id="household.numCars"
+                  name="household.numCars"
+                  type="number"
+                  min="0"
+                  value={formData.household.numCars}
+                  onChange={handleChange}
+                  placeholder="0"
+                />
+              </div>
             </div>
           </div>
         </div>

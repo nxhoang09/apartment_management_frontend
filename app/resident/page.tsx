@@ -121,6 +121,8 @@ export default function ResidentPage() {
               status: household.household.status,
               informationStatus: household.household.informationStatus,
                   head: household.head?.fullname ?? "Chưa có chủ hộ",
+                  numMotorbike: household.household.numMotorbike,
+                  numCars: household.household.numCars,
                 }}
           onEdit={()=>{
             console.log(">> Bấm nút Chỉnh sửa hộ khẩu")

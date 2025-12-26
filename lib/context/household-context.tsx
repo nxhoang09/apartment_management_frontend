@@ -47,6 +47,8 @@ export interface Household {
   createtime: string
   headID: number
   userID: number
+  numCars?: number
+  numMotorbike?: number
  }
 export interface HouseholdData {
   household: Household

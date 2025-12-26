@@ -84,6 +84,20 @@ interface FeeResponse {
   }
 }
 
+interface RepeatFee {
+  id: number
+  name: string
+  description?: string
+  isMandatory?: boolean
+  frequency: "MONTHLY" | "YEARLY"
+  rate?: number
+  calculationBase: "PER_PERSON" | "PER_HOUSEHOLD" | "PER_MOTORBIKE" | "PER_CAR"
+  anchorDay?: number
+  anchorMonth?: number
+  status?: "ACTIVE" | "PAUSED"
+  createdAt?: string
+}
+
 export default function Fees2Page() {
   const { token } = useAuth()
   const [fees, setFees] = useState<Fee[]>([])
@@ -91,7 +105,11 @@ export default function Fees2Page() {
   const [error, setError] = useState<string | null>(null)
   
   // Tabs
-  const [activeTab, setActiveTab] = useState<"list" | "detail">("list")
+  const [activeTab, setActiveTab] = useState<"list" | "repeat" | "detail">("list")
+  
+  // Repeat fees
+  const [repeatFees, setRepeatFees] = useState<RepeatFee[]>([])
+  const [repeatFeesLoading, setRepeatFeesLoading] = useState(false)
   
   // Pagination
   const [page, setPage] = useState(1)
@@ -161,11 +179,30 @@ export default function Fees2Page() {
     }
   }
 
+  const loadRepeatFees = async () => {
+    setRepeatFeesLoading(true)
+    try {
+      const res = await apiRequest("/fee/repeat-fee", "GET", undefined, token ?? undefined)
+      const data = (res as any)?.data || res
+      setRepeatFees(Array.isArray(data) ? data : [])
+    } catch (err: any) {
+      setError(err?.message || "Không thể tải danh sách phí lặp lại")
+    } finally {
+      setRepeatFeesLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (token) {
       loadFees(currentSearchTerm)
     }
   }, [token, page, limit])
+
+  useEffect(() => {
+    if (token && activeTab === "repeat") {
+      loadRepeatFees()
+    }
+  }, [token, activeTab])
 
   const handleOpenCreateDialog = () => {
     setFormData({
@@ -242,6 +279,28 @@ export default function Fees2Page() {
     setActiveTab("list")
     setSelectedFee(null)
     setUpdateMessage(null)
+  }
+
+  const handleTabChange = (tab: "list" | "repeat" | "detail") => {
+    if (tab !== "detail") {
+      setSelectedFee(null)
+      setUpdateMessage(null)
+    }
+    setActiveTab(tab)
+  }
+
+  const handleDeleteRepeatFee = async (id: number) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa phí lặp lại này?")) return
+
+    setRepeatFeesLoading(true)
+    try {
+      await apiRequest(`/fee/repeat-fee/${id}`, "DELETE", undefined, token ?? undefined)
+      await loadRepeatFees()
+    } catch (err: any) {
+      setError(err?.message || "Xóa phí lặp lại thất bại")
+    } finally {
+      setRepeatFeesLoading(false)
+    }
   }
 
   const handleUpdateFee = async () => {
@@ -416,19 +475,30 @@ export default function Fees2Page() {
           name: formData.name,
           description: formData.description || undefined,
           isMandatory: formData.isMandatory,
-          frequency: formData.frequency,
-          calculationBase: formData.calculationBase
+          frequency: formData.frequency
         }
 
-        if (formData.rate) {
-          payload.rate = Number(formData.rate)
+        // Only include rate and calculationBase when isMandatory is true
+        if (formData.isMandatory) {
+          payload.calculationBase = formData.calculationBase
+          if (formData.rate) {
+            payload.rate = Number(formData.rate)
+          }
         }
+
         if (formData.anchorDay) {
           payload.anchorDay = Number(formData.anchorDay)
         }
         if (formData.anchorMonth) {
           payload.anchorMonth = Number(formData.anchorMonth)
         }
+
+        // Log để kiểm tra
+        console.log("=== DEBUG CREATE FEE ===")
+        console.log("formData.isMandatory:", formData.isMandatory)
+        console.log("typeof formData.isMandatory:", typeof formData.isMandatory)
+        console.log("payload:", JSON.stringify(payload, null, 2))
+        console.log("========================")
 
         // Use different API based on frequency
         if (formData.frequency === "ONE_TIME") {
@@ -465,9 +535,19 @@ export default function Fees2Page() {
                 ? "border-b-2 border-primary text-primary"
                 : "text-muted-foreground hover:text-foreground"
             }`}
-            onClick={() => handleBackToList()}
+            onClick={() => handleTabChange("list")}
           >
             Danh sách phí
+          </button>
+          <button
+            className={`px-4 py-2 font-medium transition-colors ${
+              activeTab === "repeat"
+                ? "border-b-2 border-primary text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => handleTabChange("repeat")}
+          >
+            Phí lặp lại
           </button>
           {selectedFee && (
             <button
@@ -535,7 +615,6 @@ export default function Fees2Page() {
                       <TableHead>Tên phí</TableHead>
                       <TableHead>Mô tả</TableHead>
                       <TableHead>Bắt buộc</TableHead>
-                      <TableHead>Tần suất</TableHead>
                       <TableHead>Đơn giá</TableHead>
                       <TableHead>Cơ sở tính</TableHead>
                       <TableHead className="text-right">Hành động</TableHead>
@@ -553,17 +632,6 @@ export default function Fees2Page() {
                               : "bg-gray-100 text-gray-800"
                           }`}>
                             {fee.isMandatory ? "Bắt buộc" : "Tùy chọn"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded text-sm ${
-                            fee.frequency === "MONTHLY" 
-                              ? "bg-blue-100 text-blue-800" 
-                              : fee.frequency === "YEARLY"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-purple-100 text-purple-800"
-                          }`}>
-                            {fee.frequency === "MONTHLY" ? "Hàng tháng" : fee.frequency === "YEARLY" ? "Hàng năm" : "Một lần"}
                           </span>
                         </TableCell>
                         <TableCell>{fee.rate ? `${fee.rate.toLocaleString()} VND` : "-"}</TableCell>
@@ -632,6 +700,98 @@ export default function Fees2Page() {
                     </Button>
                   </div>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tab Content: Repeat Fees */}
+        {activeTab === "repeat" && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Danh sách phí lặp lại theo chu kỳ</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {repeatFeesLoading && <div className="text-center py-8">Đang tải...</div>}
+              
+              {!repeatFeesLoading && repeatFees.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  Chưa có phí lặp lại nào.
+                </div>
+              )}
+
+              {!repeatFeesLoading && repeatFees.length > 0 && (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tên phí</TableHead>
+                      <TableHead>Mô tả</TableHead>
+                      <TableHead>Bắt buộc</TableHead>
+                      <TableHead>Tần suất</TableHead>
+                      <TableHead>Đơn giá</TableHead>
+                      <TableHead>Cơ sở tính</TableHead>
+                      <TableHead>Ngày neo</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead className="text-right">Hành động</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {repeatFees.map((fee) => (
+                      <TableRow key={fee.id}>
+                        <TableCell className="font-medium">{fee.name}</TableCell>
+                        <TableCell>{fee.description || "-"}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded text-sm ${
+                            fee.isMandatory 
+                              ? "bg-red-100 text-red-800" 
+                              : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {fee.isMandatory ? "Bắt buộc" : "Tùy chọn"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded text-sm ${
+                            fee.frequency === "MONTHLY" 
+                              ? "bg-blue-100 text-blue-800" 
+                              : "bg-green-100 text-green-800"
+                          }`}>
+                            {fee.frequency === "MONTHLY" ? "Hàng tháng" : "Hàng năm"}
+                          </span>
+                        </TableCell>
+                        <TableCell>{fee.rate ? `${fee.rate.toLocaleString()} VND` : "-"}</TableCell>
+                        <TableCell>
+                          {fee.calculationBase === "PER_PERSON" ? "Theo người" :
+                           fee.calculationBase === "PER_HOUSEHOLD" ? "Theo hộ" :
+                           fee.calculationBase === "PER_MOTORBIKE" ? "Theo xe máy" :
+                           fee.calculationBase === "PER_CAR" ? "Theo ô tô" : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {fee.anchorDay || "-"}
+                          {fee.frequency === "YEARLY" && fee.anchorMonth && ` / Tháng ${fee.anchorMonth}`}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded text-sm ${
+                            fee.status === "ACTIVE" 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {fee.status === "ACTIVE" ? "Hoạt động" : "Tạm dừng"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleDeleteRepeatFee(fee.id)}
+                            disabled={repeatFeesLoading}
+                          >
+                            Xóa
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>

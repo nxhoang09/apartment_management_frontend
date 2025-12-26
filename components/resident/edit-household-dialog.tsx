@@ -28,6 +28,8 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
     province: household.province,
     headID: household.headID?.toString() || "",
     updateReason: "",
+    numCars: household.numCars?.toString() || "0",
+    numMotorbike: household.numMotorbike?.toString() || "0",
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -43,7 +45,10 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
       formData.ward !== household.ward ||
       formData.province !== household.province
     const headChanged = newHeadId !== undefined && newHeadId !== household.headID
-    const hasChanges = hasAddressChanges || headChanged
+    const vehicleChanged = 
+      Number(formData.numCars) !== (household.numCars || 0) ||
+      Number(formData.numMotorbike) !== (household.numMotorbike || 0)
+    const hasChanges = hasAddressChanges || headChanged || vehicleChanged
 
     if (!hasChanges) {
       onOpenChange(false)
@@ -59,6 +64,8 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
         street: formData.street,
         ward: formData.ward,
         province: formData.province,
+        numCars: Number(formData.numCars) || 0,
+        numMotorbike: Number(formData.numMotorbike) || 0,
       }
 
       if (headChanged && newHeadId !== undefined) {
@@ -154,6 +161,29 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
                 id="province"
                 value={formData.province}
                 onChange={(e) => setFormData({ ...formData, province: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="numMotorbike">Số xe máy</Label>
+              <Input
+                id="numMotorbike"
+                type="number"
+                min="0"
+                value={formData.numMotorbike}
+                onChange={(e) => setFormData({ ...formData, numMotorbike: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="numCars">Số xe ô tô</Label>
+              <Input
+                id="numCars"
+                type="number"
+                min="0"
+                value={formData.numCars}
+                onChange={(e) => setFormData({ ...formData, numCars: e.target.value })}
               />
             </div>
           </div>
