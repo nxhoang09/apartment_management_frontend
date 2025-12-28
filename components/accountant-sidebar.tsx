@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Users, FileText, LayoutDashboard, Settings, LogOut, ChevronLeft, Menu, Building2 } from "lucide-react"
+import { FileText, LayoutDashboard, Settings, LogOut, ChevronLeft, Menu, Calculator } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useAuth } from "@/lib/context/auth-context"
@@ -11,32 +11,22 @@ import { useAuth } from "@/lib/context/auth-context"
 const menuItems = [
   {
     title: "Tổng quan",
-    href: "/admin",
+    href: "/accountant",
     icon: LayoutDashboard,
   },
   {
-    title: "Tài khoản và căn hộ",
-    href: "/admin/accounts",
-    icon: Users,
-  },
-  {
-    title: "Quản lý khai báo",
-    href: "/admin/registrations",
-    icon: FileText,
-  },
-  {
     title: "Quản lý thu phí",
-    href: "/admin/fees2",
+    href: "/accountant/fees",
     icon: FileText,
   },
   {
     title: "Cài đặt",
-    href: "/admin/settings",
+    href: "/accountant/settings",
     icon: Settings,
   },
 ]
 
-export function AdminSidebar({ onCollapseChange }: { onCollapseChange?: (collapsed: boolean) => void }) {
+export function AccountantSidebar({ onCollapseChange }: { onCollapseChange?: (collapsed: boolean) => void }) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -73,9 +63,9 @@ export function AdminSidebar({ onCollapseChange }: { onCollapseChange?: (collaps
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border">
             {!collapsed && (
-              <Link href="/admin" className="flex items-center gap-2 font-semibold">
-                <Building2 className="h-5 w-5 text-primary" />
-                <span>Admin Panel</span>
+              <Link href="/accountant" className="flex items-center gap-2 font-semibold">
+                <Calculator className="h-5 w-5 text-primary" />
+                <span>Kế toán</span>
               </Link>
             )}
             <Button

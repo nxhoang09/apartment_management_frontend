@@ -68,6 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         case "USER":
           router.push("/resident")
           break
+        case "ACCOUNTANT":
+          router.push("/accountant")
+          break
         default:
           router.push("/")
       }
