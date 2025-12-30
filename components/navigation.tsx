@@ -34,30 +34,6 @@ export function Navigation() {
             >
               Trang chủ
             </Link>
-            <Link
-              href="/apartments"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/apartments") ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              Căn hộ
-            </Link>
-            <Link
-              href="/amenities"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/amenities") ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              Tiện ích
-            </Link>
-            <Link
-              href="/contact"
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isActive("/contact") ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              Liên hệ
-            </Link>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -107,33 +83,6 @@ export function Navigation() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Trang chủ
-              </Link>
-              <Link
-                href="/apartments"
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  isActive("/apartments") ? "text-primary" : "text-muted-foreground"
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Căn hộ
-              </Link>
-              <Link
-                href="/amenities"
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  isActive("/amenities") ? "text-primary" : "text-muted-foreground"
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Tiện ích
-              </Link>
-              <Link
-                href="/contact"
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  isActive("/contact") ? "text-primary" : "text-muted-foreground"
-                }`}
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Liên hệ
               </Link>
               <div className="flex flex-col gap-2 pt-2 border-t border-border/40">
                 {!isLoading && (

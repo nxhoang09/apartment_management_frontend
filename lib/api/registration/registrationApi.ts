@@ -43,15 +43,16 @@ export async function deleteTempAbsent(registrationId: number | string, token?: 
 // Admin endpoints
 export async function adminGetPendingTempResidents(
   token?: string,
-  opts?: { status?: string; page?: number; limit?: number; sortBy?: string; order?: string }
+  opts?: { status?: string; page?: number; limit?: number; sortBy?: string; order?: string; keyword?: string }
 ) {
-  // backend route: GET /registration/admin/tem-resident?page=&limit=&sortBy=&order=&status=
+  // backend route: GET /registration/admin/tem-resident?page=&limit=&sortBy=&order=&status=&keyword=
   const params: string[] = []
   if (opts?.status) params.push(`status=${encodeURIComponent(opts.status)}`)
   if (opts?.page) params.push(`page=${encodeURIComponent(String(opts.page))}`)
   if (opts?.limit) params.push(`limit=${encodeURIComponent(String(opts.limit))}`)
   if (opts?.sortBy) params.push(`sortBy=${encodeURIComponent(opts.sortBy)}`)
   if (opts?.order) params.push(`order=${encodeURIComponent(opts.order)}`)
+  if (opts?.keyword) params.push(`keyword=${encodeURIComponent(opts.keyword)}`)
   const q = params.length ? `?${params.join("&")}` : ""
   return apiRequest(`/registration/admin/tem-resident${q}`, "GET", undefined, token)
 }
@@ -73,7 +74,7 @@ export async function adminRejectTempResident(registrationId: number | string, r
 // Admin temp-absent endpoints
 export async function adminGetPendingTempAbsents(
   token?: string,
-  opts?: { status?: string; page?: number; limit?: number; sortBy?: string; order?: string }
+  opts?: { status?: string; page?: number; limit?: number; sortBy?: string; order?: string; keyword?: string }
 ) {
   const params: string[] = []
   if (opts?.status) params.push(`status=${encodeURIComponent(opts.status)}`)
@@ -81,6 +82,7 @@ export async function adminGetPendingTempAbsents(
   if (opts?.limit) params.push(`limit=${encodeURIComponent(String(opts.limit))}`)
   if (opts?.sortBy) params.push(`sortBy=${encodeURIComponent(opts.sortBy)}`)
   if (opts?.order) params.push(`order=${encodeURIComponent(opts.order)}`)
+  if (opts?.keyword) params.push(`keyword=${encodeURIComponent(opts.keyword)}`)
   const q = params.length ? `?${params.join("&")}` : ""
   return apiRequest(`/registration/admin/tem-absent${q}`, "GET", undefined, token)
 }

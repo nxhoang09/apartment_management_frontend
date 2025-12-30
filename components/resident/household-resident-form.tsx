@@ -52,6 +52,9 @@ export default function HouseholdResidentForm({
     },
   )
 
+  // Step state: 1 = household, 2 = resident
+  const [step, setStep] = useState(1)
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     const [group, field] = name.split(".")
@@ -105,10 +108,15 @@ export default function HouseholdResidentForm({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Household Information */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-lg text-foreground">Thông tin hộ khẩu</h3>
+      {/* Stepper indicator */}
+      <div className="flex items-center justify-center gap-4 mb-4">
+        <div className={`h-2 w-24 rounded-full ${step === 1 ? "bg-primary" : "bg-muted"}`}></div>
+        <div className={`h-2 w-24 rounded-full ${step === 2 ? "bg-primary" : "bg-muted"}`}></div>
+      </div>
+
+      {step === 1 && (
+        <div className="max-w-xl mx-auto space-y-4">
+          <h3 className="font-semibold text-lg text-foreground">Bước 1: Thông tin hộ khẩu</h3>
           <div className="space-y-3">
             <div>
               <Label htmlFor="household.houseHoldCode">Mã hộ khẩu</Label>
@@ -204,11 +212,15 @@ export default function HouseholdResidentForm({
               </div>
             </div>
           </div>
+          <Button type="button" className="w-full mt-6" onClick={() => setStep(2)}>
+            Tiếp tục
+          </Button>
         </div>
+      )}
 
-        {/* Household Head Information */}
-        <div className="space-y-4">
-          <h3 className="font-semibold text-lg text-foreground">Thông tin chủ hộ</h3>
+      {step === 2 && (
+        <div className="max-w-xl mx-auto space-y-4">
+          <h3 className="font-semibold text-lg text-foreground">Bước 2: Thông tin chủ hộ</h3>
           <div className="space-y-3">
             <div>
               <Label htmlFor="resident.fullname">Họ và tên</Label>
@@ -313,13 +325,17 @@ export default function HouseholdResidentForm({
               />
             </div>
           </div>
+          <div className="flex gap-2 mt-6">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(1)} disabled={isLoading}>
+              Quay lại
+            </Button>
+            <Button type="submit" className="flex-1" disabled={isLoading}>
+              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isLoading ? "Đang xử lý..." : mode === "edit" ? "Cập nhật" : "Đăng ký"}
+            </Button>
+          </div>
         </div>
-      </div>
-
-      <Button type="submit" disabled={isLoading} className="w-full mt-6">
-        {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-        {isLoading ? "Đang xử lý..." : mode === "edit" ? "Cập nhật" : "Đăng ký"}
-      </Button>
+      )}
     </form>
   )
 }

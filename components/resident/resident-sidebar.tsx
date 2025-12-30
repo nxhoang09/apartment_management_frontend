@@ -31,11 +31,6 @@ const menuItems = [
     icon: Receipt,
   },
   {
-    title: "Thông báo",
-    href: "/resident/announcements",
-    icon: Bell,
-  },
-  {
     title: "Cài đặt",
     href: "/resident/settings",
     icon: Settings,

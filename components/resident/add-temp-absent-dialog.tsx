@@ -55,7 +55,7 @@ export function AddTempAbsentDialog({ open, onOpenChange, members, onAdded }: Ad
       return
     }
     if (s > eDate) {
-      setError("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc")
+      setError("End date must be after start date")
       return
     }
 

@@ -57,7 +57,7 @@ export function TempResidentRegistrationStep({
         <Button type="button" variant="outline" onClick={onBack} disabled={isLoading}>
           Quay lại
         </Button>
-        <Button type="submit" disabled={isLoading || !!dateError} onClick={onSubmit}>
+        <Button type="submit" disabled={isLoading} onClick={onSubmit}>
           {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Gửi khai báo
         </Button>

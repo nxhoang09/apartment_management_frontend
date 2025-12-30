@@ -16,7 +16,11 @@ interface AdminTempResident {
   resident?: { id?: number | string; fullname?: string; nationalId?: string }
 }
 
-export function AdminTempResidentList() {
+interface Props {
+  keyword?: string
+}
+
+export function AdminTempResidentList({ keyword }: Props) {
   const { token } = useAuth()
   const [items, setItems] = useState<AdminTempResident[]>([])
   const [totalCount, setTotalCount] = useState<number>(0)
@@ -34,15 +38,14 @@ export function AdminTempResidentList() {
       setLoading(true)
       setError(null)
       try {
-        const res = await adminGetPendingTempResidents(token ?? undefined, { status: "PENDING", page, limit: pageSize, sortBy, order })
-        // Server may return shape: { page, limit, total, totalPages, data: [...] }
-        // or { data: [...], meta: { total, page, limit } }
-        const dataRaw = res?.data ?? res
-        const dataArr = Array.isArray(dataRaw) ? dataRaw : []
+        const res = await adminGetPendingTempResidents(token ?? undefined, { status: "PENDING", page, limit: pageSize, sortBy, order, keyword })
+        // Server returns: { data: { page, limit, total, totalPages, items: [...] } }
+        const dataObj = res?.data ?? res
+        const dataArr = Array.isArray(dataObj?.items) ? dataObj.items : (Array.isArray(dataObj) ? dataObj : [])
         // Some backends wrap the selected fields under a `select` key (Prisma-like). Normalize that.
         const normalized = dataArr.map((it: any) => (it && typeof it === "object" && it.select ? it.select : it))
         setItems(normalized)
-        const totalFromRes = res?.total ?? res?.meta?.total ?? (Array.isArray(dataArr) ? dataArr.length : 0)
+        const totalFromRes = dataObj?.total ?? res?.total ?? res?.meta?.total ?? dataArr.length
         setTotalCount(typeof totalFromRes === "number" ? totalFromRes : 0)
       } catch (err: any) {
         setError(err?.message ?? "Không thể tải danh sách")
@@ -52,7 +55,7 @@ export function AdminTempResidentList() {
     }
 
     void load()
-  }, [token, page, pageSize, sortBy, order])
+  }, [token, page, pageSize, sortBy, order, keyword])
 
   const handleApprove = (id: number) => {
     // open dialog via selected state instead of direct approve
@@ -74,11 +77,13 @@ export function AdminTempResidentList() {
     void (async () => {
       setLoading(true)
       try {
-        const res = await adminGetPendingTempResidents(token ?? undefined, { status: "PENDING", page, limit: pageSize, sortBy, order })
-        const dataRaw = res?.data ?? res
-        const dataArr = Array.isArray(dataRaw) ? dataRaw : []
+        const res = await adminGetPendingTempResidents(token ?? undefined, { status: "PENDING", page, limit: pageSize, sortBy, order, keyword })
+        const dataObj = res?.data ?? res
+        const dataArr = Array.isArray(dataObj?.items) ? dataObj.items : (Array.isArray(dataObj) ? dataObj : [])
         const normalized = dataArr.map((it: any) => (it && typeof it === "object" && it.select ? it.select : it))
         setItems(normalized)
+        const totalFromRes = dataObj?.total ?? res?.total ?? res?.meta?.total ?? dataArr.length
+        setTotalCount(typeof totalFromRes === "number" ? totalFromRes : 0)
       } catch (err: any) {
         setError(err?.message ?? "Không thể tải danh sách")
       } finally {
@@ -120,7 +125,7 @@ export function AdminTempResidentList() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Đơn tạm trú cần duyệt ({items.length})</CardTitle>
+        <CardTitle className="text-xl">Đơn tạm trú cần duyệt ({totalCount})</CardTitle>
       </CardHeader>
       <CardContent>
         {loading && <div>Đang tải...</div>}

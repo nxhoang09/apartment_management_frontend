@@ -119,8 +119,8 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
   const getValidatedDates = () => {
     const startDateObj = parseDisplayToDate(form.startDate)
     const endDateObj = parseDisplayToDate(form.endDate)
-    if (startDateObj && endDateObj && startDateObj > endDateObj) {
-      setDateError("Ngày bắt đầu phải trước hoặc bằng ngày kết thúc")
+      if (startDateObj && endDateObj && startDateObj > endDateObj) {
+        setDateError("End date must be after start date")
       return null
     }
     return { startDateObj, endDateObj }
@@ -376,7 +376,12 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
                 occupation: form.occupation,
                 workingAdress: form.workingAdress,
               }}
-              onFormChange={(updates) => setForm((s) => ({ ...s, ...updates }))}
+              onFormChange={(updates) => {
+                setForm((s) => ({ ...s, ...updates }))
+                if (Object.keys(updates).includes("startDate") || Object.keys(updates).includes("endDate")) {
+                  setDateError("")
+                }
+              }}
               onSearch={handleSearch}
               onNext={() => setStep(2)}
               onReset={() => {

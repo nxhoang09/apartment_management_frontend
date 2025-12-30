@@ -70,7 +70,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50/50 p-8">
+    <main className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* PHẦN 1: HEADER & DASHBOARD STATS */}
@@ -145,7 +145,7 @@ export default function AdminPage() {
           
           <CardContent>
             {loading ? (
-              <div className="flex items-center justify-center h-64 border rounded-md bg-slate-50">
+              <div className="flex items-center justify-center h-64 border rounded-md bg-background">
                 <div className="text-muted-foreground flex items-center gap-2">
                   <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
                   Đang tải dữ liệu...

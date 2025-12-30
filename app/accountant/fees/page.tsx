@@ -49,6 +49,12 @@ interface FeeAssignment {
 }
 
 interface FeeDetail extends Fee {
+  statistics?: {
+    totalAmount: number
+    collectedAmount: number
+    totalHouseholds: number
+    paidHouseholds: number
+  }
   assignments?: {
     data: FeeAssignment[]
     meta?: {
@@ -98,7 +104,7 @@ interface RepeatFee {
   createdAt?: string
 }
 
-export default function AccountantFeesPage() {
+export default function Fees2Page() {
   const { token } = useAuth()
   const [fees, setFees] = useState<Fee[]>([])
   const [loading, setLoading] = useState(false)
@@ -128,6 +134,7 @@ export default function AccountantFeesPage() {
   const [assignmentLimit, setAssignmentLimit] = useState(10)
   const [assignmentTotal, setAssignmentTotal] = useState(0)
   const [assignmentTotalPages, setAssignmentTotalPages] = useState(1)
+  const [assignmentFilter, setAssignmentFilter] = useState<"ALL" | "true" | "false">("ALL")
   const [detailLoading, setDetailLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
@@ -157,6 +164,7 @@ export default function AccountantFeesPage() {
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [rejectNote, setRejectNote] = useState("")
   const [paymentActionLoading, setPaymentActionLoading] = useState(false)
+  const [approveAmount, setApproveAmount] = useState<string>("")
 
   const loadFees = async (search?: string) => {
     setLoading(true)
@@ -226,6 +234,7 @@ export default function AccountantFeesPage() {
     setDetailLoading(true)
     setUpdateMessage(null)
     setAssignmentPage(1)
+    setAssignmentFilter("ALL")
     
     try {
       const res = await apiRequest(`/fee/${fee.id}/detail?page=1&limit=${assignmentLimit}`, "GET", undefined, token ?? undefined)
@@ -257,10 +266,11 @@ export default function AccountantFeesPage() {
     }
   }
 
-  const loadAssignments = async (feeId: number, pageNum: number) => {
+  const loadAssignments = async (feeId: number, pageNum: number, isPaidFilter?: string) => {
     setDetailLoading(true)
     try {
-      const res = await apiRequest(`/fee/${feeId}/detail?page=${pageNum}&limit=${assignmentLimit}`, "GET", undefined, token ?? undefined)
+      const isPaidParam = isPaidFilter && isPaidFilter !== "ALL" ? `&isPaid=${isPaidFilter}` : ""
+      const res = await apiRequest(`/fee/${feeId}/detail?page=${pageNum}&limit=${assignmentLimit}${isPaidParam}`, "GET", undefined, token ?? undefined)
       const feeDetail = (res as any)?.data || res
       
       const assignmentsData = feeDetail.assignments?.data || []
@@ -268,6 +278,14 @@ export default function AccountantFeesPage() {
       setAssignments(assignmentsData)
       setAssignmentTotal(assignmentsMeta?.total || assignmentsData.length)
       setAssignmentTotalPages(assignmentsMeta?.totalPages || 1)
+
+      setSelectedFee(prev => {
+        if (!prev) return feeDetail;
+        return {
+          ...prev,
+          statistics: feeDetail.statistics
+        };
+      });
     } catch (err: any) {
       setUpdateMessage({ type: "error", text: err?.message || "Không thể tải danh sách gán phí" })
     } finally {
@@ -290,14 +308,28 @@ export default function AccountantFeesPage() {
   }
 
   const handleDeleteRepeatFee = async (id: number) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa phí lặp lại này?")) return
+    if (!confirm("Bạn có chắc chắn muốn tạm dừng phí lặp lại này?")) return
 
     setRepeatFeesLoading(true)
     try {
       await apiRequest(`/fee/repeat-fee/${id}`, "DELETE", undefined, token ?? undefined)
       await loadRepeatFees()
     } catch (err: any) {
-      setError(err?.message || "Xóa phí lặp lại thất bại")
+      setError(err?.message || "Tạm dừng phí lặp lại thất bại")
+    } finally {
+      setRepeatFeesLoading(false)
+    }
+  }
+
+  const handleRestartRepeatFee = async (id: number) => {
+    if (!confirm("Bạn có chắc chắn muốn tiếp tục phí lặp lại này?")) return
+
+    setRepeatFeesLoading(true)
+    try {
+      await apiRequest(`/fee/${id}/restart`, "POST", undefined, token ?? undefined)
+      await loadRepeatFees()
+    } catch (err: any) {
+      setError(err?.message || "Tiếp tục phí lặp lại thất bại")
     } finally {
       setRepeatFeesLoading(false)
     }
@@ -386,11 +418,18 @@ export default function AccountantFeesPage() {
     setPaymentDialogOpen(true)
     setPaymentDetail(null)
     setRejectNote("")
+    setApproveAmount("")
     
     try {
       const res = await apiRequest(`/fee/${feeId}/${householdId}/payment`, "GET", undefined, token ?? undefined)
       const data = (res as any)?.data || res
       setPaymentDetail(data)
+
+      if (data?.Payment?.amountPaid) {
+        setApproveAmount(data.Payment.amountPaid.toString())
+      } else {
+        setApproveAmount("0")
+      }
     } catch (err: any) {
       setPaymentDialogOpen(false)
     } finally {
@@ -403,14 +442,19 @@ export default function AccountantFeesPage() {
     
     setPaymentActionLoading(true)
     try {
-      await apiRequest(`/payments/${paymentDetail.Payment.id}/approve`, "PATCH", undefined, token ?? undefined)
+      await apiRequest(
+        `/payments/${paymentDetail.Payment.id}/approve`, 
+        "PATCH", 
+        { amount: Number(approveAmount) },
+        token ?? undefined
+      )
+      
       setPaymentDialogOpen(false)
-      // Reload assignments
       if (selectedFee) {
-        loadAssignments(selectedFee.id, assignmentPage)
+        loadAssignments(selectedFee.id, assignmentPage, assignmentFilter)
       }
     } catch (err: any) {
-      // Silent fail
+      alert(err.message || "Lỗi khi duyệt")
     } finally {
       setPaymentActionLoading(false)
     }
@@ -429,7 +473,7 @@ export default function AccountantFeesPage() {
       setPaymentDialogOpen(false)
       // Reload assignments
       if (selectedFee) {
-        loadAssignments(selectedFee.id, assignmentPage)
+        loadAssignments(selectedFee.id, assignmentPage, assignmentFilter)
       }
     } catch (err: any) {
       // Silent fail
@@ -492,6 +536,13 @@ export default function AccountantFeesPage() {
         if (formData.anchorMonth) {
           payload.anchorMonth = Number(formData.anchorMonth)
         }
+
+        // Log để kiểm tra
+        console.log("=== DEBUG CREATE FEE ===")
+        console.log("formData.isMandatory:", formData.isMandatory)
+        console.log("typeof formData.isMandatory:", typeof formData.isMandatory)
+        console.log("payload:", JSON.stringify(payload, null, 2))
+        console.log("========================")
 
         // Use different API based on frequency
         if (formData.frequency === "ONE_TIME") {
@@ -772,14 +823,27 @@ export default function AccountantFeesPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => handleDeleteRepeatFee(fee.id)}
-                            disabled={repeatFeesLoading}
-                          >
-                            Xóa
-                          </Button>
+                          <div className="flex gap-2 justify-end">
+                            {fee.status === "ACTIVE" ? (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleDeleteRepeatFee(fee.id)}
+                                disabled={repeatFeesLoading}
+                              >
+                                Tạm dừng
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="sm" 
+                                variant="default"
+                                onClick={() => handleRestartRepeatFee(fee.id)}
+                                disabled={repeatFeesLoading}
+                              >
+                                Tiếp tục
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -891,8 +955,67 @@ export default function AccountantFeesPage() {
                     </div>
                   </div>
 
+                    {/*Thống kê thu phí*/}
+                    <div className="bg-muted/30 p-4 rounded-lg border my-4">
+                      <h3 className="font-semibold mb-3">Thống kê thu phí</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Thống kê tiền */}
+                        <div className="bg-background p-4 rounded shadow-sm border">
+                          <div className="text-sm text-muted-foreground mb-1">Tiến độ thu tiền</div>
+                          <div className="flex justify-between items-end mb-2">
+                            <span className="text-2xl font-bold text-green-600">
+                              {selectedFee.statistics?.collectedAmount.toLocaleString()} đ
+                            </span>
+                            <span className="text-sm text-muted-foreground pb-1">
+                              / {selectedFee.statistics?.totalAmount.toLocaleString()} đ
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div 
+                              className="bg-green-600 h-2.5 rounded-full" 
+                              style={{ 
+                                width: `${selectedFee.statistics?.totalAmount ? (selectedFee.statistics.collectedAmount / selectedFee.statistics.totalAmount * 100) : 0}%` 
+                              }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-right mt-1 text-muted-foreground">
+                            {selectedFee.statistics?.totalAmount 
+                              ? ((selectedFee.statistics.collectedAmount / selectedFee.statistics.totalAmount) * 100).toFixed(1) 
+                              : 0}%
+                          </p>
+                        </div>
+
+                      {/* Thống kê hộ dân */}
+                      <div className="bg-background p-4 rounded shadow-sm border">
+                        <div className="text-sm text-muted-foreground mb-1">Số hộ đã nộp</div>
+                        <div className="flex justify-between items-end mb-2">
+                          <span className="text-2xl font-bold text-blue-600">
+                            {selectedFee.statistics?.paidHouseholds}
+                          </span>
+                          <span className="text-sm text-muted-foreground pb-1">
+                            / {selectedFee.statistics?.totalHouseholds} hộ
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div 
+                            className="bg-blue-600 h-2.5 rounded-full" 
+                            style={{ 
+                              width: `${selectedFee.statistics?.totalHouseholds ? (selectedFee.statistics.paidHouseholds / selectedFee.statistics.totalHouseholds * 100) : 0}%` 
+                            }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-right mt-1 text-muted-foreground">
+                          {selectedFee.statistics?.totalHouseholds 
+                            ? ((selectedFee.statistics.paidHouseholds / selectedFee.statistics.totalHouseholds) * 100).toFixed(1) 
+                            : 0}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+
                   {/* Action Buttons */}
-                  <div className="flex justify-between pt-4 border-t">
+                  <div className="flex justify-end pt-4 border-t">
                     <Button 
                       variant="destructive"
                       onClick={handleDeleteFee}
@@ -900,20 +1023,33 @@ export default function AccountantFeesPage() {
                     >
                       Xóa phí
                     </Button>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline"
-                        onClick={handleAssignFee}
-                        disabled={updateLoading}
-                      >
-                        Gán phí
-                      </Button>
-                    </div>
                   </div>
 
                   {/* Assignments Table */}
                   <div className="pt-6 border-t mt-6">
-                    <h3 className="text-lg font-semibold mb-4">Danh sách hộ gia đình được gán phí</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Danh sách hộ gia đình được gán phí</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Lọc:</span>
+                        <Select 
+                          value={assignmentFilter} 
+                          onValueChange={(value) => {
+                            setAssignmentFilter(value as "ALL" | "true" | "false")
+                            setAssignmentPage(1)
+                            if (selectedFee) loadAssignments(selectedFee.id, 1, value)
+                          }}
+                        >
+                          <SelectTrigger className="w-[160px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ALL">Tất cả</SelectItem>
+                            <SelectItem value="true">Đã thanh toán</SelectItem>
+                            <SelectItem value="false">Chưa thanh toán</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                     
                     {assignments.length === 0 && (
                       <div className="text-center py-4 text-muted-foreground">
@@ -992,38 +1128,36 @@ export default function AccountantFeesPage() {
                           </TableBody>
                         </Table>
 
-                        {/* Assignment Pagination */}
-                        {assignmentTotalPages > 1 && (
-                          <div className="flex items-center justify-end gap-2 mt-4">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const newPage = Math.max(1, assignmentPage - 1)
-                                setAssignmentPage(newPage)
-                                if (selectedFee) loadAssignments(selectedFee.id, newPage)
-                              }}
-                              disabled={assignmentPage === 1 || detailLoading}
-                            >
-                              Trước
-                            </Button>
-                            <div className="text-sm">
-                              Trang {assignmentPage} / {assignmentTotalPages}
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const newPage = Math.min(assignmentTotalPages, assignmentPage + 1)
-                                setAssignmentPage(newPage)
-                                if (selectedFee) loadAssignments(selectedFee.id, newPage)
-                              }}
-                              disabled={assignmentPage >= assignmentTotalPages || detailLoading}
-                            >
-                              Tiếp
-                            </Button>
+                        {/* Assignment Pagination: Luôn hiển thị */}
+                        <div className="flex items-center justify-end gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const newPage = Math.max(1, assignmentPage - 1)
+                              setAssignmentPage(newPage)
+                              if (selectedFee) loadAssignments(selectedFee.id, newPage, assignmentFilter)
+                            }}
+                            disabled={assignmentPage === 1 || detailLoading}
+                          >
+                            Trước
+                          </Button>
+                          <div className="text-sm">
+                            Trang {assignmentPage} / {assignmentTotalPages}
                           </div>
-                        )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const newPage = Math.min(assignmentTotalPages, assignmentPage + 1)
+                              setAssignmentPage(newPage)
+                              if (selectedFee) loadAssignments(selectedFee.id, newPage, assignmentFilter)
+                            }}
+                            disabled={assignmentPage >= assignmentTotalPages || detailLoading}
+                          >
+                            Tiếp
+                          </Button>
+                        </div>
                       </>
                     )}
                   </div>
@@ -1330,6 +1464,31 @@ export default function AccountantFeesPage() {
             {!paymentLoading && !paymentDetail?.Payment && (
               <div className="text-center py-8 text-muted-foreground">
                 Không có thông tin thanh toán
+              </div>
+            )}
+
+            {/*Xác nhận số tiền thu */}
+            {paymentDetail?.Payment?.status === "PENDING" && (
+              <div className="space-y-2 pt-4 border-t mt-4">
+                <Label htmlFor="approveAmount" className="text-blue-600 font-semibold">
+                  Xác nhận số tiền thực thu (VND)
+                </Label>
+                <div className="flex items-center gap-2">
+                   <Input
+                    id="approveAmount"
+                    type="number"
+                    value={approveAmount}
+                    onChange={(e) => setApproveAmount(e.target.value)}
+                    placeholder="Nhập số tiền duyệt"
+                    className="font-bold text-lg"
+                  />
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    (Admin xác nhận)
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  * Số tiền này sẽ được cập nhật vào thống kê tổng doanh thu.
+                </p>
               </div>
             )}
 

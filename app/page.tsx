@@ -1,11 +1,38 @@
+"use client"
+
 import { Navigation } from "@/components/navigation"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Building2, Users, FileText, Shield, ArrowRight, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/lib/context/auth-context"
+import { useRouter } from "next/navigation"
 
 export default function HomePage() {
+  const { user } = useAuth()
+  const router = useRouter()
+
+  const handleGetStarted = () => {
+    if (!user) {
+      router.push("/auth/login")
+      return
+    }
+
+    switch (user.role) {
+      case "ADMIN":
+        router.push("/admin")
+        break
+      case "USER":
+        router.push("/resident")
+        break
+      case "ACCOUNTANT":
+        router.push("/accountant")
+        break
+      default:
+        router.push("/auth/login")
+    }
+  }
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />
@@ -28,14 +55,9 @@ export default function HomePage() {
                   báo tạm trú/tạm vắng một cách nhanh chóng.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                  <Button size="lg" asChild className="group">
-                    <Link href="/register">
+                  <Button size="lg" onClick={handleGetStarted} className="group">
                       Bắt đầu ngay
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-                  <Button size="lg" variant="outline" asChild>
-                    <Link href="/apartments">Xem căn hộ</Link>
                   </Button>
                 </div>
               </div>
@@ -154,37 +176,6 @@ export default function HomePage() {
                   </p>
                 </CardContent>
               </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary to-accent p-12 md:p-16 text-center">
-              <div className="relative z-10 max-w-3xl mx-auto space-y-6">
-                <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground">Sẵn sàng bắt đầu?</h2>
-                <p className="text-lg text-primary-foreground/90 text-pretty">
-                  Tham gia cùng hàng trăm chung cư đang sử dụng hệ thống quản lý hiện đại của chúng tôi
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-                  <Button size="lg" variant="secondary" asChild className="group">
-                    <Link href="/register">
-                      Đăng ký ngay
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    asChild
-                    className="bg-transparent border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10"
-                  >
-                    <Link href="/contact">Liên hệ tư vấn</Link>
-                  </Button>
-                </div>
-              </div>
-              <div className="absolute inset-0 bg-grid-white/10 [mask-image:radial-gradient(white,transparent_70%)]" />
             </div>
           </div>
         </section>

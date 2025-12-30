@@ -135,14 +135,16 @@ export default function AccountsAndApartmentsPage() {
   const [residentApprovalLoading, setResidentApprovalLoading] = useState(false)
   const [residentApprovalMessage, setResidentApprovalMessage] = useState<string | null>(null)
   const [residentRejectionReason, setResidentRejectionReason] = useState("")
+  const [stateFilter, setStateFilter] = useState<string>("ALL")
 
-  const loadAccounts = useCallback(async (search?: string) => {
+  const loadAccounts = useCallback(async (search?: string, state?: string) => {
     setLoading(true)
     setError(null)
     try {
       const searchParam = search ? `&search=${encodeURIComponent(search)}` : ""
+      const stateParam = state && state !== "ALL" ? `&state=${state}` : ""
       setCurrentSearchTerm(search || "")
-      const res = await apiRequest(`/user/all?page=${page}&limit=${limit}${searchParam}`, "GET", undefined, token ?? undefined)
+      const res = await apiRequest(`/user/all?page=${page}&limit=${limit}${searchParam}${stateParam}`, "GET", undefined, token ?? undefined)
       const data = res as ApiResponse
       const inner = data.data
       setAccounts(inner.items || [])
@@ -152,7 +154,7 @@ export default function AccountsAndApartmentsPage() {
         setPage(Number(inner.totalPages || 1))
       }
     } catch (err: any) {
-      setError(err?.message ?? "Không thể tải danh sách tài khoản")
+      setError(err?.message || "System error")
     } finally {
       setLoading(false)
     }
@@ -162,9 +164,9 @@ export default function AccountsAndApartmentsPage() {
 
   useEffect(() => {
     if (token) {
-      void loadAccounts(currentSearchTerm)
+      void loadAccounts(currentSearchTerm, stateFilter)
     }
-  }, [token, page, limit])
+  }, [token, page, limit, stateFilter])
 
   // Search is now done server-side via API
   const filteredAccounts = accounts
@@ -198,7 +200,7 @@ export default function AccountsAndApartmentsPage() {
       setConfirmDeleteOpen(false)
       await loadAccounts()
     } catch (err: any) {
-      setError(err?.message ?? "Không thể xóa tài khoản")
+      setError(err?.message || "System error")
     } finally {
       setLoading(false)
     }
@@ -222,7 +224,7 @@ export default function AccountsAndApartmentsPage() {
       setDetail(userData as UserDetails)
       setActiveTab("details")
     } catch (err: any) {
-      setDetailError(err?.message ?? "Không thể tải chi tiết tài khoản")
+      setDetailError(err?.message || "System error")
     } finally {
       setDetailLoading(false)
     }
@@ -236,7 +238,7 @@ export default function AccountsAndApartmentsPage() {
       const msg = (res && (res.message || res.data?.message)) || "Reset mật khẩu thành công"
       setResetMessage(msg)
     } catch (err: any) {
-      const msg = err?.message || "Reset mật khẩu thất bại"
+      const msg = err?.message || "System error"
       setResetMessage(msg)
     } finally {
       setResetLoading(false)
@@ -267,7 +269,7 @@ export default function AccountsAndApartmentsPage() {
         setRoleDialogOpen(false)
       }, 1500)
     } catch (err: any) {
-      setRoleMessage(err?.message || "Đổi quyền thất bại")
+      setRoleMessage(err?.message || "System error")
     } finally {
       setRoleLoading(false)
     }
@@ -286,7 +288,7 @@ export default function AccountsAndApartmentsPage() {
       setHouseholdChangeData(res?.data || res)
       setHouseholdDetailsOpen(true)
     } catch (err: any) {
-      setApprovalMessage(err?.message || "Không thể tải thông tin thay đổi")
+      setApprovalMessage(err?.message || "System error")
     } finally {
       setApprovalLoading(false)
     }
@@ -306,7 +308,7 @@ export default function AccountsAndApartmentsPage() {
       setRejectionReason("")
       await openDetails(detail?.id!)
     } catch (err: any) {
-      setApprovalMessage(err?.message || "Duyệt thất bại")
+      setApprovalMessage(err?.message || "System error")
     } finally {
       setApprovalLoading(false)
     }
@@ -330,7 +332,7 @@ export default function AccountsAndApartmentsPage() {
       setHouseholdDetailsOpen(false)
       await openDetails(detail?.id!)
     } catch (err: any) {
-      setApprovalMessage(err?.message || "Từ chối thất bại")
+      setApprovalMessage(err?.message || "System error")
     } finally {
       setApprovalLoading(false)
     }
@@ -347,7 +349,7 @@ export default function AccountsAndApartmentsPage() {
       setResidentChangeData(res?.data || res)
       setResidentDetailsOpen(true)
     } catch (err: any) {
-      setResidentApprovalMessage(err?.message || "Không thể tải thông tin thay đổi")
+      setResidentApprovalMessage(err?.message || "System error")
     } finally {
       setResidentApprovalLoading(false)
     }
@@ -367,7 +369,7 @@ export default function AccountsAndApartmentsPage() {
       setResidentRejectionReason("")
       await openDetails(detail?.id!)
     } catch (err: any) {
-      setResidentApprovalMessage(err?.message || "Duyệt thất bại")
+      setResidentApprovalMessage(err?.message || "System error")
     } finally {
       setResidentApprovalLoading(false)
     }
@@ -391,7 +393,7 @@ export default function AccountsAndApartmentsPage() {
       setResidentDetailsOpen(false)
       await openDetails(detail?.id!)
     } catch (err: any) {
-      setResidentApprovalMessage(err?.message || "Từ chối thất bại")
+      setResidentApprovalMessage(err?.message || "System error")
     } finally {
       setResidentApprovalLoading(false)
     }
@@ -414,7 +416,7 @@ export default function AccountsAndApartmentsPage() {
       setCreateCount(1)
       await loadAccounts()
     } catch (err: any) {
-      setCreateError(err?.message ?? "Không thể tạo tài khoản")
+      setCreateError(err?.message || "System error")
     } finally {
       setCreateLoading(false)
     }
@@ -455,7 +457,20 @@ export default function AccountsAndApartmentsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Tài khoản ({total})</CardTitle>
+              <div className="flex items-center gap-4">
+                <CardTitle>Tài khoản ({total})</CardTitle>
+                <Select value={stateFilter} onValueChange={(value) => { setStateFilter(value); setPage(1) }}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">Tất cả</SelectItem>
+                    <SelectItem value="ACTIVE">Hoạt động</SelectItem>
+                    <SelectItem value="INACTIVE">Chưa kích hoạt</SelectItem>
+                    <SelectItem value="DELETED">Đã xóa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex items-center gap-2">
                 <Button onClick={() => setCreateOpen(true)}>+ Tạo tài khoản mới</Button>
                 <Button
@@ -477,14 +492,14 @@ export default function AccountsAndApartmentsPage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     setPage(1)
-                    loadAccounts(searchTerm)
+                    loadAccounts(searchTerm, stateFilter)
                   }
                 }}
               />
               <Button
                 onClick={() => {
                   setPage(1)
-                  loadAccounts(searchTerm)
+                  loadAccounts(searchTerm, stateFilter)
                 }}
                 disabled={loading}
               >
@@ -887,6 +902,9 @@ export default function AccountsAndApartmentsPage() {
           </DialogHeader>
 
           <div className="space-y-3">
+            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+              <strong>Lưu ý:</strong> Mật khẩu mặc định của các tài khoản tạo mới sẽ là <code className="bg-background px-1 py-0.5 rounded font-mono">123456</code>
+            </div>
             <div className="space-y-1">
               <Label htmlFor="account-count">Số lượng</Label>
               <Input

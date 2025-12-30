@@ -134,6 +134,7 @@ export default function Fees2Page() {
   const [assignmentLimit, setAssignmentLimit] = useState(10)
   const [assignmentTotal, setAssignmentTotal] = useState(0)
   const [assignmentTotalPages, setAssignmentTotalPages] = useState(1)
+  const [assignmentFilter, setAssignmentFilter] = useState<"ALL" | "true" | "false">("ALL")
   const [detailLoading, setDetailLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
@@ -233,6 +234,7 @@ export default function Fees2Page() {
     setDetailLoading(true)
     setUpdateMessage(null)
     setAssignmentPage(1)
+    setAssignmentFilter("ALL")
     
     try {
       const res = await apiRequest(`/fee/${fee.id}/detail?page=1&limit=${assignmentLimit}`, "GET", undefined, token ?? undefined)
@@ -264,10 +266,11 @@ export default function Fees2Page() {
     }
   }
 
-  const loadAssignments = async (feeId: number, pageNum: number) => {
+  const loadAssignments = async (feeId: number, pageNum: number, isPaidFilter?: string) => {
     setDetailLoading(true)
     try {
-      const res = await apiRequest(`/fee/${feeId}/detail?page=${pageNum}&limit=${assignmentLimit}`, "GET", undefined, token ?? undefined)
+      const isPaidParam = isPaidFilter && isPaidFilter !== "ALL" ? `&isPaid=${isPaidFilter}` : ""
+      const res = await apiRequest(`/fee/${feeId}/detail?page=${pageNum}&limit=${assignmentLimit}${isPaidParam}`, "GET", undefined, token ?? undefined)
       const feeDetail = (res as any)?.data || res
       
       const assignmentsData = feeDetail.assignments?.data || []
@@ -305,14 +308,28 @@ export default function Fees2Page() {
   }
 
   const handleDeleteRepeatFee = async (id: number) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa phí lặp lại này?")) return
+    if (!confirm("Bạn có chắc chắn muốn tạm dừng phí lặp lại này?")) return
 
     setRepeatFeesLoading(true)
     try {
       await apiRequest(`/fee/repeat-fee/${id}`, "DELETE", undefined, token ?? undefined)
       await loadRepeatFees()
     } catch (err: any) {
-      setError(err?.message || "Xóa phí lặp lại thất bại")
+      setError(err?.message || "Tạm dừng phí lặp lại thất bại")
+    } finally {
+      setRepeatFeesLoading(false)
+    }
+  }
+
+  const handleRestartRepeatFee = async (id: number) => {
+    if (!confirm("Bạn có chắc chắn muốn tiếp tục phí lặp lại này?")) return
+
+    setRepeatFeesLoading(true)
+    try {
+      await apiRequest(`/fee/${id}/restart`, "POST", undefined, token ?? undefined)
+      await loadRepeatFees()
+    } catch (err: any) {
+      setError(err?.message || "Tiếp tục phí lặp lại thất bại")
     } finally {
       setRepeatFeesLoading(false)
     }
@@ -434,7 +451,7 @@ export default function Fees2Page() {
       
       setPaymentDialogOpen(false)
       if (selectedFee) {
-        loadAssignments(selectedFee.id, assignmentPage)
+        loadAssignments(selectedFee.id, assignmentPage, assignmentFilter)
       }
     } catch (err: any) {
       alert(err.message || "Lỗi khi duyệt")
@@ -456,7 +473,7 @@ export default function Fees2Page() {
       setPaymentDialogOpen(false)
       // Reload assignments
       if (selectedFee) {
-        loadAssignments(selectedFee.id, assignmentPage)
+        loadAssignments(selectedFee.id, assignmentPage, assignmentFilter)
       }
     } catch (err: any) {
       // Silent fail
@@ -806,14 +823,27 @@ export default function Fees2Page() {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => handleDeleteRepeatFee(fee.id)}
-                            disabled={repeatFeesLoading}
-                          >
-                            Xóa
-                          </Button>
+                          <div className="flex gap-2 justify-end">
+                            {fee.status === "ACTIVE" ? (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleDeleteRepeatFee(fee.id)}
+                                disabled={repeatFeesLoading}
+                              >
+                                Tạm dừng
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="sm" 
+                                variant="default"
+                                onClick={() => handleRestartRepeatFee(fee.id)}
+                                disabled={repeatFeesLoading}
+                              >
+                                Tiếp tục
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -985,7 +1015,7 @@ export default function Fees2Page() {
 
 
                   {/* Action Buttons */}
-                  <div className="flex justify-between pt-4 border-t">
+                  <div className="flex justify-end pt-4 border-t">
                     <Button 
                       variant="destructive"
                       onClick={handleDeleteFee}
@@ -993,20 +1023,33 @@ export default function Fees2Page() {
                     >
                       Xóa phí
                     </Button>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline"
-                        onClick={handleAssignFee}
-                        disabled={updateLoading}
-                      >
-                        Gán phí
-                      </Button>
-                    </div>
                   </div>
 
                   {/* Assignments Table */}
                   <div className="pt-6 border-t mt-6">
-                    <h3 className="text-lg font-semibold mb-4">Danh sách hộ gia đình được gán phí</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold">Danh sách hộ gia đình được gán phí</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Lọc:</span>
+                        <Select 
+                          value={assignmentFilter} 
+                          onValueChange={(value) => {
+                            setAssignmentFilter(value as "ALL" | "true" | "false")
+                            setAssignmentPage(1)
+                            if (selectedFee) loadAssignments(selectedFee.id, 1, value)
+                          }}
+                        >
+                          <SelectTrigger className="w-[160px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ALL">Tất cả</SelectItem>
+                            <SelectItem value="true">Đã thanh toán</SelectItem>
+                            <SelectItem value="false">Chưa thanh toán</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                     
                     {assignments.length === 0 && (
                       <div className="text-center py-4 text-muted-foreground">
@@ -1085,38 +1128,36 @@ export default function Fees2Page() {
                           </TableBody>
                         </Table>
 
-                        {/* Assignment Pagination */}
-                        {assignmentTotalPages > 1 && (
-                          <div className="flex items-center justify-end gap-2 mt-4">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const newPage = Math.max(1, assignmentPage - 1)
-                                setAssignmentPage(newPage)
-                                if (selectedFee) loadAssignments(selectedFee.id, newPage)
-                              }}
-                              disabled={assignmentPage === 1 || detailLoading}
-                            >
-                              Trước
-                            </Button>
-                            <div className="text-sm">
-                              Trang {assignmentPage} / {assignmentTotalPages}
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const newPage = Math.min(assignmentTotalPages, assignmentPage + 1)
-                                setAssignmentPage(newPage)
-                                if (selectedFee) loadAssignments(selectedFee.id, newPage)
-                              }}
-                              disabled={assignmentPage >= assignmentTotalPages || detailLoading}
-                            >
-                              Tiếp
-                            </Button>
+                        {/* Assignment Pagination: Luôn hiển thị */}
+                        <div className="flex items-center justify-end gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const newPage = Math.max(1, assignmentPage - 1)
+                              setAssignmentPage(newPage)
+                              if (selectedFee) loadAssignments(selectedFee.id, newPage, assignmentFilter)
+                            }}
+                            disabled={assignmentPage === 1 || detailLoading}
+                          >
+                            Trước
+                          </Button>
+                          <div className="text-sm">
+                            Trang {assignmentPage} / {assignmentTotalPages}
                           </div>
-                        )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              const newPage = Math.min(assignmentTotalPages, assignmentPage + 1)
+                              setAssignmentPage(newPage)
+                              if (selectedFee) loadAssignments(selectedFee.id, newPage, assignmentFilter)
+                            }}
+                            disabled={assignmentPage >= assignmentTotalPages || detailLoading}
+                          >
+                            Tiếp
+                          </Button>
+                        </div>
                       </>
                     )}
                   </div>

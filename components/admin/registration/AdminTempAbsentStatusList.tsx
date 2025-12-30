@@ -19,9 +19,10 @@ interface Props {
   status: "PENDING" | "APPROVED" | "ENDED" | "REJECTED"
   title: string
   showActions?: boolean
+  keyword?: string
 }
 
-export function AdminTempAbsentStatusList({ status, title, showActions = false }: Props) {
+export function AdminTempAbsentStatusList({ status, title, showActions = false, keyword }: Props) {
   const { token } = useAuth()
   const [items, setItems] = useState<AdminTempAbsent[]>([])
   const [totalCount, setTotalCount] = useState<number>(0)
@@ -38,12 +39,13 @@ export function AdminTempAbsentStatusList({ status, title, showActions = false }
       setLoading(true)
       setError(null)
       try {
-        const res = await adminGetPendingTempAbsents(token ?? undefined, { status, page, limit: pageSize, sortBy, order })
-        const dataRaw = res?.data ?? res
-        const dataArr = Array.isArray(dataRaw) ? dataRaw : []
+        const res = await adminGetPendingTempAbsents(token ?? undefined, { status, page, limit: pageSize, sortBy, order, keyword })
+        // Server returns: { data: { page, limit, total, totalPages, items: [...] } }
+        const dataObj = res?.data ?? res
+        const dataArr = Array.isArray(dataObj?.items) ? dataObj.items : (Array.isArray(dataObj) ? dataObj : [])
         const normalized = dataArr.map((it: any) => (it && typeof it === "object" && it.select ? it.select : it))
         setItems(normalized)
-        const totalFromRes = res?.total ?? res?.meta?.total ?? (Array.isArray(dataArr) ? dataArr.length : 0)
+        const totalFromRes = dataObj?.total ?? res?.total ?? res?.meta?.total ?? dataArr.length
         setTotalCount(typeof totalFromRes === "number" ? totalFromRes : 0)
       } catch (err: any) {
         setError(err?.message ?? "Không thể tải danh sách")
@@ -53,7 +55,7 @@ export function AdminTempAbsentStatusList({ status, title, showActions = false }
     }
 
     void load()
-  }, [token, page, pageSize, sortBy, order, status])
+  }, [token, page, pageSize, sortBy, order, status, keyword])
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -62,11 +64,13 @@ export function AdminTempAbsentStatusList({ status, title, showActions = false }
     void (async () => {
       setLoading(true)
       try {
-        const res = await adminGetPendingTempAbsents(token ?? undefined, { status, page, limit: pageSize, sortBy, order })
-        const dataRaw = res?.data ?? res
-        const dataArr = Array.isArray(dataRaw) ? dataRaw : []
+        const res = await adminGetPendingTempAbsents(token ?? undefined, { status, page, limit: pageSize, sortBy, order, keyword })
+        const dataObj = res?.data ?? res
+        const dataArr = Array.isArray(dataObj?.items) ? dataObj.items : (Array.isArray(dataObj) ? dataObj : [])
         const normalized = dataArr.map((it: any) => (it && typeof it === "object" && it.select ? it.select : it))
         setItems(normalized)
+        const totalFromRes = dataObj?.total ?? res?.total ?? res?.meta?.total ?? dataArr.length
+        setTotalCount(typeof totalFromRes === "number" ? totalFromRes : 0)
       } catch (err: any) {
         setError(err?.message ?? "Không thể tải danh sách")
       } finally {
