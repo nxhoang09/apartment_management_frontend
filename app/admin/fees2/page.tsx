@@ -49,6 +49,12 @@ interface FeeAssignment {
 }
 
 interface FeeDetail extends Fee {
+  statistics?: {
+    totalAmount: number
+    collectedAmount: number
+    totalHouseholds: number
+    paidHouseholds: number
+  }
   assignments?: {
     data: FeeAssignment[]
     meta?: {
@@ -157,6 +163,7 @@ export default function Fees2Page() {
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [rejectNote, setRejectNote] = useState("")
   const [paymentActionLoading, setPaymentActionLoading] = useState(false)
+  const [approveAmount, setApproveAmount] = useState<string>("")
 
   const loadFees = async (search?: string) => {
     setLoading(true)
@@ -268,6 +275,14 @@ export default function Fees2Page() {
       setAssignments(assignmentsData)
       setAssignmentTotal(assignmentsMeta?.total || assignmentsData.length)
       setAssignmentTotalPages(assignmentsMeta?.totalPages || 1)
+
+      setSelectedFee(prev => {
+        if (!prev) return feeDetail;
+        return {
+          ...prev,
+          statistics: feeDetail.statistics
+        };
+      });
     } catch (err: any) {
       setUpdateMessage({ type: "error", text: err?.message || "Không thể tải danh sách gán phí" })
     } finally {
@@ -386,11 +401,18 @@ export default function Fees2Page() {
     setPaymentDialogOpen(true)
     setPaymentDetail(null)
     setRejectNote("")
+    setApproveAmount("")
     
     try {
       const res = await apiRequest(`/fee/${feeId}/${householdId}/payment`, "GET", undefined, token ?? undefined)
       const data = (res as any)?.data || res
       setPaymentDetail(data)
+
+      if (data?.Payment?.amountPaid) {
+        setApproveAmount(data.Payment.amountPaid.toString())
+      } else {
+        setApproveAmount("0")
+      }
     } catch (err: any) {
       setPaymentDialogOpen(false)
     } finally {
@@ -403,14 +425,19 @@ export default function Fees2Page() {
     
     setPaymentActionLoading(true)
     try {
-      await apiRequest(`/payments/${paymentDetail.Payment.id}/approve`, "PATCH", undefined, token ?? undefined)
+      await apiRequest(
+        `/payments/${paymentDetail.Payment.id}/approve`, 
+        "PATCH", 
+        { amount: Number(approveAmount) },
+        token ?? undefined
+      )
+      
       setPaymentDialogOpen(false)
-      // Reload assignments
       if (selectedFee) {
         loadAssignments(selectedFee.id, assignmentPage)
       }
     } catch (err: any) {
-      // Silent fail
+      alert(err.message || "Lỗi khi duyệt")
     } finally {
       setPaymentActionLoading(false)
     }
@@ -898,6 +925,65 @@ export default function Fees2Page() {
                     </div>
                   </div>
 
+                    {/*Thống kê thu phí*/}
+                    <div className="bg-muted/30 p-4 rounded-lg border my-4">
+                      <h3 className="font-semibold mb-3">Thống kê thu phí</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Thống kê tiền */}
+                        <div className="bg-background p-4 rounded shadow-sm border">
+                          <div className="text-sm text-muted-foreground mb-1">Tiến độ thu tiền</div>
+                          <div className="flex justify-between items-end mb-2">
+                            <span className="text-2xl font-bold text-green-600">
+                              {selectedFee.statistics?.collectedAmount.toLocaleString()} đ
+                            </span>
+                            <span className="text-sm text-muted-foreground pb-1">
+                              / {selectedFee.statistics?.totalAmount.toLocaleString()} đ
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div 
+                              className="bg-green-600 h-2.5 rounded-full" 
+                              style={{ 
+                                width: `${selectedFee.statistics?.totalAmount ? (selectedFee.statistics.collectedAmount / selectedFee.statistics.totalAmount * 100) : 0}%` 
+                              }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-right mt-1 text-muted-foreground">
+                            {selectedFee.statistics?.totalAmount 
+                              ? ((selectedFee.statistics.collectedAmount / selectedFee.statistics.totalAmount) * 100).toFixed(1) 
+                              : 0}%
+                          </p>
+                        </div>
+
+                      {/* Thống kê hộ dân */}
+                      <div className="bg-background p-4 rounded shadow-sm border">
+                        <div className="text-sm text-muted-foreground mb-1">Số hộ đã nộp</div>
+                        <div className="flex justify-between items-end mb-2">
+                          <span className="text-2xl font-bold text-blue-600">
+                            {selectedFee.statistics?.paidHouseholds}
+                          </span>
+                          <span className="text-sm text-muted-foreground pb-1">
+                            / {selectedFee.statistics?.totalHouseholds} hộ
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                          <div 
+                            className="bg-blue-600 h-2.5 rounded-full" 
+                            style={{ 
+                              width: `${selectedFee.statistics?.totalHouseholds ? (selectedFee.statistics.paidHouseholds / selectedFee.statistics.totalHouseholds * 100) : 0}%` 
+                            }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-right mt-1 text-muted-foreground">
+                          {selectedFee.statistics?.totalHouseholds 
+                            ? ((selectedFee.statistics.paidHouseholds / selectedFee.statistics.totalHouseholds) * 100).toFixed(1) 
+                            : 0}%
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+
                   {/* Action Buttons */}
                   <div className="flex justify-between pt-4 border-t">
                     <Button 
@@ -1337,6 +1423,31 @@ export default function Fees2Page() {
             {!paymentLoading && !paymentDetail?.Payment && (
               <div className="text-center py-8 text-muted-foreground">
                 Không có thông tin thanh toán
+              </div>
+            )}
+
+            {/*Xác nhận số tiền thu */}
+            {paymentDetail?.Payment?.status === "PENDING" && (
+              <div className="space-y-2 pt-4 border-t mt-4">
+                <Label htmlFor="approveAmount" className="text-blue-600 font-semibold">
+                  Xác nhận số tiền thực thu (VND)
+                </Label>
+                <div className="flex items-center gap-2">
+                   <Input
+                    id="approveAmount"
+                    type="number"
+                    value={approveAmount}
+                    onChange={(e) => setApproveAmount(e.target.value)}
+                    placeholder="Nhập số tiền duyệt"
+                    className="font-bold text-lg"
+                  />
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    (Admin xác nhận)
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  * Số tiền này sẽ được cập nhật vào thống kê tổng doanh thu.
+                </p>
               </div>
             )}
 

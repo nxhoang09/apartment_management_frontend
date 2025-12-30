@@ -94,6 +94,10 @@ export async function adminGetAllHouseholds(
   return apiRequest(url, "GET", undefined, token); 
 }
 
+export async function getAdminDashboardStats(token?: string) {
+  return apiRequest("/admin/dashboard/stats", "GET", undefined, token);
+}
+
 export async function createTempResidentRegis(data: any, token?: string){
   return apiRequest("/registration", "POST", data, token);
 }
