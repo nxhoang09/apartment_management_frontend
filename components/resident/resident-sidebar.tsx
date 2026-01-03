@@ -3,13 +3,15 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Home, User, FileText, Bell, Settings, LogOut, ChevronLeft, Menu } from "lucide-react"
+import { Home, FileText, Bell, Settings, LogOut, ChevronLeft, Menu, Receipt, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useAuth } from "@/lib/context/auth-context"
 
 interface ResidentSidebarProps {
   userName: string;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
 const menuItems = [
@@ -18,20 +20,15 @@ const menuItems = [
     href: "/resident",
     icon: Home,
   },
-  {
-    title: "Thông tin cá nhân",
-    href: "/resident/profile",
-    icon: User,
-  },
     {
     title: "Khai báo",
-    href: "/resident/declarations",
+    href: "/resident/registrations",
     icon: FileText,
   },
   {
-    title: "Thông báo",
-    href: "/resident/announcements",
-    icon: Bell,
+    title: "Đóng phí",
+    href: "/resident/fees",
+    icon: Receipt,
   },
   {
     title: "Cài đặt",
@@ -40,9 +37,9 @@ const menuItems = [
   },
 ]
 
-export function ResidentSidebar({userName}: ResidentSidebarProps) {
+export function ResidentSidebar({ userName, collapsed, onToggleCollapse }: ResidentSidebarProps) {
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
+  // `collapsed` is controlled by parent (page) so layout can respond
   const [mobileOpen, setMobileOpen] = useState(false)
   const { logout } = useAuth()
 
@@ -87,7 +84,7 @@ export function ResidentSidebar({userName}: ResidentSidebarProps) {
                 variant="ghost"
                 size="icon"
                 className={cn("hidden lg:flex", collapsed && "mx-auto")}
-                onClick={() => setCollapsed(!collapsed)}
+                onClick={onToggleCollapse}
               >
                 <ChevronLeft
                   className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")}

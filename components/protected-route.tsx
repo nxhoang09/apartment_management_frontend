@@ -31,6 +31,8 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
           router.push("/admin")
         } else if (user.role === "USER") {
           router.push("/resident")
+        } else if (user.role === "ACCOUNTANT") {
+          router.push("/accountant")
         } else {
           router.push("/")
         }

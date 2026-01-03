@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/context/auth-context"
 import { HouseholdProvider } from "@/lib/context/household-context"
 import { Suspense } from "react"
 import { AdminProvider } from "@/lib/context/admin-context"
+import { Toaster } from "@/components/ui/sonner"
 
 export const metadata: Metadata = {
   title: "Hệ thống quản lý hộ khẩu",
@@ -34,6 +35,7 @@ export default function RootLayout({
           </AuthProvider>
         </Suspense>
         <Analytics />
+        <Toaster />
       </body>
     </html>
   )

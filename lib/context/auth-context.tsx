@@ -68,6 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         case "USER":
           router.push("/resident")
           break
+        case "ACCOUNTANT":
+          router.push("/accountant")
+          break
         default:
           router.push("/")
       }
@@ -143,3 +146,5 @@ export function useAuth() {
   if (!context) throw new Error("useAuth must be used within an AuthProvider")
   return context
 }
+
+

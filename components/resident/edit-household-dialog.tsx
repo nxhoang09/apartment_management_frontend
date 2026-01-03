@@ -27,6 +27,9 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
     ward: household.ward,
     province: household.province,
     headID: household.headID?.toString() || "",
+    updateReason: "",
+    numCars: household.numCars?.toString() || "0",
+    numMotorbike: household.numMotorbike?.toString() || "0",
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -34,6 +37,24 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+    const newHeadId = formData.headID ? Number.parseInt(formData.headID) : undefined
+    const hasAddressChanges =
+      formData.apartmentNumber !== household.apartmentNumber ||
+      formData.buildingNumber !== household.buildingNumber ||
+      formData.street !== household.street ||
+      formData.ward !== household.ward ||
+      formData.province !== household.province
+    const headChanged = newHeadId !== undefined && newHeadId !== household.headID
+    const vehicleChanged = 
+      Number(formData.numCars) !== (household.numCars || 0) ||
+      Number(formData.numMotorbike) !== (household.numMotorbike || 0)
+    const hasChanges = hasAddressChanges || headChanged || vehicleChanged
+
+    if (!hasChanges) {
+      onOpenChange(false)
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -43,13 +64,19 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
         street: formData.street,
         ward: formData.ward,
         province: formData.province,
+        numCars: Number(formData.numCars) || 0,
+        numMotorbike: Number(formData.numMotorbike) || 0,
       }
 
-      // Only include headID if it was changed
-      if (formData.headID && Number.parseInt(formData.headID) !== household.headID) {
-        updateData.headID = Number.parseInt(formData.headID)
+      if (headChanged && newHeadId !== undefined) {
+        updateData.headID = newHeadId
       }
 
+      if (formData.updateReason) {
+        updateData.updateReason = formData.updateReason
+      }
+
+      console.log("[EditHouseholdDialog] Payload gửi:", updateData)
       await updateHousehold(updateData)
       onOpenChange(false)
     } catch (err) {
@@ -136,6 +163,39 @@ export function EditHouseholdDialog({ household, open, onOpenChange }: EditHouse
                 onChange={(e) => setFormData({ ...formData, province: e.target.value })}
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="numMotorbike">Số xe máy</Label>
+              <Input
+                id="numMotorbike"
+                type="number"
+                min="0"
+                value={formData.numMotorbike}
+                onChange={(e) => setFormData({ ...formData, numMotorbike: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="numCars">Số xe ô tô</Label>
+              <Input
+                id="numCars"
+                type="number"
+                min="0"
+                value={formData.numCars}
+                onChange={(e) => setFormData({ ...formData, numCars: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="updateReason">Lý do thay đổi</Label>
+            <Input
+              id="updateReason"
+              value={formData.updateReason}
+              onChange={(e) => setFormData({ ...formData, updateReason: e.target.value })}
+              placeholder="Mô tả ngắn gọn lý do chỉnh sửa"
+            />
           </div>
 
           <div className="flex gap-3 justify-end pt-4">

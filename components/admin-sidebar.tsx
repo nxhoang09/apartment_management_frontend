@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Building2, Users, FileText, LayoutDashboard, Settings, Bell, LogOut, ChevronLeft, Menu } from "lucide-react"
+import { Users, FileText, LayoutDashboard, Settings, LogOut, ChevronLeft, Menu, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useAuth } from "@/lib/context/auth-context"
@@ -15,24 +15,19 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Quản lý căn hộ",
-    href: "/admin/apartments",
-    icon: Building2,
-  },
-  {
-    title: "Quản lý cư dân",
-    href: "/admin/residents",
+    title: "Tài khoản và căn hộ",
+    href: "/admin/accounts",
     icon: Users,
   },
   {
-    title: "Khai báo",
-    href: "/admin/declarations",
+    title: "Quản lý khai báo",
+    href: "/admin/registrations",
     icon: FileText,
   },
   {
-    title: "Thông báo",
-    href: "/admin/announcements",
-    icon: Bell,
+    title: "Quản lý thu phí",
+    href: "/admin/fees2",
+    icon: FileText,
   },
   {
     title: "Cài đặt",
@@ -41,7 +36,7 @@ const menuItems = [
   },
 ]
 
-export function AdminSidebar() {
+export function AdminSidebar({ onCollapseChange }: { onCollapseChange?: (collapsed: boolean) => void }) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -59,12 +54,17 @@ export function AdminSidebar() {
       </button>
 
       {/* Mobile Overlay */}
-      {mobileOpen && <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setMobileOpen(false)} />}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40 transition-opacity duration-200"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 h-screen bg-card border-r border-border transition-all duration-300",
+          "fixed left-0 top-0 z-40 h-screen bg-card border-r border-border transition-transform duration-200 ease-in-out",
           collapsed ? "w-16" : "w-64",
           mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
@@ -82,7 +82,13 @@ export function AdminSidebar() {
               variant="ghost"
               size="icon"
               className={cn("hidden lg:flex", collapsed && "mx-auto")}
-              onClick={() => setCollapsed(!collapsed)}
+              onClick={() => {
+                setCollapsed((c) => {
+                  const next = !c
+                  onCollapseChange?.(next)
+                  return next
+                })
+              }}
             >
               <ChevronLeft className={cn("h-4 w-4 transition-transform", collapsed && "rotate-180")} />
             </Button>
