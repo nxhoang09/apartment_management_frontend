@@ -12,9 +12,10 @@ import { AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useHousehold } from "@/lib/context/household-context"
 import type { ResidentMember } from "@/lib/context/household-context"
+import { Member } from "@/components/resident/member-card"
 
 interface EditMemberDialogProps {
-  member: ResidentMember
+  member: Member
   open: boolean
   onOpenChange: (open: boolean) => void
   onUpdateMember: (id: string, data: any) => Promise<void>
@@ -37,6 +38,23 @@ export function EditMemberDialog({ member, open, onOpenChange, onUpdateMember }:
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+
+  // ...existing code...
+
+  // When submitting, convert id to number for updateMember
+  const handleUpdate = async () => {
+    setIsLoading(true)
+    setError("")
+    try {
+      await onUpdateMember(String(member.id), formData)
+      onOpenChange(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Lỗi khi cập nhật thành viên")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+  // ...existing code...
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -267,6 +267,7 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
         // normalize into Member shape expected by UI
         const ui: Member = {
           id: String(resident.id),
+          nationalId: resident.nationalId || "",
           fullname: resident.fullname || "",
           relationshipToHead: resident.relationshipToHead || "",
           dateOfBirth: resident.dateOfBirth || "",
