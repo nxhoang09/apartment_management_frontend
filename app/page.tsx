@@ -65,7 +65,7 @@ export default function HomePage() {
               <div className="relative animate-in fade-in slide-in-from-right-8 duration-700 delay-200">
                 <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl">
                   <img
-                    src="/images/property-1.png"
+                    src="https://as2.ftcdn.net/v2/jpg/02/83/27/69/1000_F_283276984_7ktetzDuWEmFejgJnY8bgyKNUfzor3Mo.jpg"
                     alt="Modern apartment building"
                     className="object-cover w-full h-full"
                   />
