@@ -169,7 +169,7 @@ export function FeeDetailByFeeModal({ feeId, onClose }: { feeId: number; onClose
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{item.household?.houseHoldCode}</TableCell>
                         <TableCell>{item.household?.head?.fullname || "N/A"}</TableCell>
-                        <TableCell>{item.household?.apartmentNumber || "-"}</TableCell>
+                        <TableCell>{String(item.household && 'apartmentNumber' in item.household ? item.household.apartmentNumber : "-")}</TableCell>
                         <TableCell>{item.amountDue.toLocaleString()} đ</TableCell>
                         <TableCell>{new Date(item.dueDate).toLocaleDateString("vi-VN")}</TableCell>
                         <TableCell>

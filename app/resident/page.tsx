@@ -18,10 +18,27 @@ export default function ResidentPage() {
   const {
     household,
     isLoading: isHouseholdLoading,
-    members,
+    members: residentMembers,
     updateMember,
     deleteMember, // Thêm hàm xóa member từ context
   } = useHousehold()
+
+  // Convert ResidentMember[] to Member[] for UI
+  const members: Member[] = residentMembers.map((m) => ({
+    id: String(m.id),
+    fullname: m.fullname,
+    nationalId: m.nationalId,
+    relationshipToHead: m.relationshipToHead,
+    dateOfBirth: m.dateOfBirth,
+    gender: m.gender,
+    occupation: m.occupation,
+    email: m.email,
+    phoneNumber: m.phoneNumber,
+    workingAdress: m.workingAdress,
+    placeOfOrigin: m.placeOfOrigin,
+    residentStatus: m.residencStatus,
+    informationStatus: undefined // ResidentMember does not have this, set undefined
+  }))
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -34,7 +51,7 @@ export default function ResidentPage() {
   // Mở dialog sửa
   const handleEditMember = (member: Member) => {
     const status = (member.informationStatus || "").toUpperCase()
-    const lockedHousehold = ((household.household.informationStatus || "").toUpperCase()) === "DELETING" || ((household.household.informationStatus || "").toUpperCase()) === "ENDED"
+    const lockedHousehold = household && household.household && ((household.household.informationStatus || "").toUpperCase() === "DELETING" || (household.household.informationStatus || "").toUpperCase() === "ENDED")
     const lockedMember = status === "DELETING" || status === "ENDED"
     if (lockedHousehold || lockedMember) {
       return
@@ -47,7 +64,7 @@ export default function ResidentPage() {
   const handleDeleteMember = (id: string) => {
     const m = members.find(x => x.id === id)
     const status = (m?.informationStatus || "").toUpperCase()
-    const lockedHousehold = ((household.household.informationStatus || "").toUpperCase()) === "DELETING" || ((household.household.informationStatus || "").toUpperCase()) === "ENDED"
+    const lockedHousehold = household && household.household && ((household.household.informationStatus || "").toUpperCase() === "DELETING" || (household.household.informationStatus || "").toUpperCase() === "ENDED")
     const lockedMember = status === "DELETING" || status === "ENDED"
     if (lockedHousehold || lockedMember) {
       return
@@ -174,7 +191,9 @@ export default function ResidentPage() {
               setIsEditDialogOpen(open)
               if (!open) setSelectedMember(null)
             }}
-            onUpdateMember={updateMember}
+            onUpdateMember={async (id, data) => {
+              await updateMember(Number(id), data)
+            }}
           />
         )}
       </div>
