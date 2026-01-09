@@ -33,6 +33,7 @@ export default function ResidentPage() {
 
   // Mở dialog sửa
   const handleEditMember = (member: Member) => {
+    if (!household) return
     const status = (member.informationStatus || "").toUpperCase()
     const lockedHousehold = ((household.household.informationStatus || "").toUpperCase()) === "DELETING" || ((household.household.informationStatus || "").toUpperCase()) === "ENDED"
     const lockedMember = status === "DELETING" || status === "ENDED"
@@ -45,6 +46,7 @@ export default function ResidentPage() {
 
   // Khi bấm xóa, chỉ mở dialog xác nhận
   const handleDeleteMember = (id: string) => {
+    if (!household) return
     const m = members.find(x => x.id === id)
     const status = (m?.informationStatus || "").toUpperCase()
     const lockedHousehold = ((household.household.informationStatus || "").toUpperCase()) === "DELETING" || ((household.household.informationStatus || "").toUpperCase()) === "ENDED"
@@ -97,6 +99,7 @@ export default function ResidentPage() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {(() => {
+          if (!household) return null
           const status = (household.household.informationStatus || "").toUpperCase()
           const locked = status === "DELETING" || status === "ENDED"
           return locked ? (
@@ -129,6 +132,7 @@ export default function ResidentPage() {
             setIsEditHouseholdOpen(true)
           }} 
           disableEdit={(() => {
+            if (!household) return false
             const status = (household.household.informationStatus || "").toUpperCase()
             return status === "DELETING" || status === "ENDED"
           })()}
@@ -146,6 +150,7 @@ export default function ResidentPage() {
           onEditMember={handleEditMember}
           onDeleteMember={handleDeleteMember}
           disabledActions={(() => {
+            if (!household) return false
             const status = (household.household.informationStatus || "").toUpperCase()
             return status === "DELETING" || status === "ENDED"
           })()}
