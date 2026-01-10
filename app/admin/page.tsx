@@ -80,19 +80,11 @@ export default function AdminPage() {
             <p className="text-muted-foreground">Hệ thống quản lý cư dân và hộ gia đình</p>
           </div>
           
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <StatCard 
-              title="Tổng căn hộ" 
-              value={stats.totalHouseholds} 
-              subtext="Tổng số căn trong hệ thống"
-              icon={Building2} // Icon tòa nhà
-              bgClass="bg-blue-100" // Nền xanh nhạt
-              colorClass="text-blue-600" // Icon xanh đậm
-            />
-            <StatCard 
-              title="Căn hộ đang ở" 
+              title="Căn hộ" 
               value={stats.occupiedHouseholds} 
-              subtext={`${stats.totalHouseholds ? ((stats.occupiedHouseholds/stats.totalHouseholds)*100).toFixed(1) : 0}% công suất`}
+              subtext="Căn hộ có người ở"
               icon={Home} // Icon ngôi nhà
               bgClass="bg-orange-100"
               colorClass="text-orange-600"
