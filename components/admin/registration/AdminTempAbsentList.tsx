@@ -42,7 +42,8 @@ export function AdminTempAbsentList({ keyword }: Props) {
         const dataArr = Array.isArray(dataObj?.items) ? dataObj.items : (Array.isArray(dataObj) ? dataObj : [])
         const normalized = dataArr.map((it: any) => (it && typeof it === "object" && it.select ? it.select : it))
         setItems(normalized)
-        const totalFromRes = dataObj?.total ?? res?.total ?? res?.meta?.total ?? dataArr.length
+        // Fix: check dataObj.data.total first, then other paths
+        const totalFromRes = dataObj?.data?.total ?? dataObj?.total ?? res?.total ?? res?.meta?.total ?? normalized.length
         setTotalCount(typeof totalFromRes === "number" ? totalFromRes : 0)
       } catch (err: any) {
         setError(err?.message ?? "Không thể tải danh sách")
@@ -66,7 +67,8 @@ export function AdminTempAbsentList({ keyword }: Props) {
         const dataArr = Array.isArray(dataObj?.items) ? dataObj.items : (Array.isArray(dataObj) ? dataObj : [])
         const normalized = dataArr.map((it: any) => (it && typeof it === "object" && it.select ? it.select : it))
         setItems(normalized)
-        const totalFromRes = dataObj?.total ?? res?.total ?? res?.meta?.total ?? dataArr.length
+        // Backend returns: { data: { total, items } }
+        const totalFromRes = res?.data?.total ?? dataObj?.total ?? normalized.length
         setTotalCount(typeof totalFromRes === "number" ? totalFromRes : 0)
       } catch (err: any) {
         setError(err?.message ?? "Không thể tải danh sách")
@@ -106,7 +108,7 @@ export function AdminTempAbsentList({ keyword }: Props) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Đơn tạm vắng cần duyệt ({totalCount})</CardTitle>
+        <CardTitle className="text-xl">Đơn tạm vắng cần duyệt</CardTitle>
       </CardHeader>
       <CardContent>
         {loading && <div>Đang tải...</div>}

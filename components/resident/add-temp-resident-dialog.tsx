@@ -306,8 +306,26 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
       const errorMessage = err instanceof Error ? err.message : "Lỗi khi tìm cư dân"
       console.log("[DEBUG] Search error:", errorMessage)
       
+      // Check for specific conflict errors from backend
+      const errMsg = String(errorMessage).toLowerCase()
+      if (errMsg.includes("permanent residence")) {
+        setSearchError(`This resident already has permanent residence registration.`)
+        setSearchLoading(false)
+        return
+      }
+      if (errMsg.includes("temporary resident") || errMsg.includes("temp_resident")) {
+        setSearchError(`This resident is already registered as a temporary resident.`)
+        setSearchLoading(false)
+        return
+      }
+      if (errMsg.includes("temporarily absent") || errMsg.includes("temp_absent")) {
+        setSearchError(`This resident is currently registered as temporarily absent.`)
+        setSearchLoading(false)
+        return
+      }
+      
       // If 404 or resident not found, allow creating new resident
-      setSearchError(`Không tìm thấy cư dân với mã số: ${nationalId}. Vui lòng nhập thông tin để tạo cư dân mới.`)
+      setSearchError(`Resident not found with ID: ${nationalId}. Please enter information to create a new resident.`)
       setCreatingResident(true)
       setForm((s) => ({ ...s, nationalId }))
     } finally {

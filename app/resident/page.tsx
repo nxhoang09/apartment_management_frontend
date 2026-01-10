@@ -36,7 +36,7 @@ export default function ResidentPage() {
     phoneNumber: m.phoneNumber,
     workingAdress: m.workingAdress,
     placeOfOrigin: m.placeOfOrigin,
-    residentStatus: m.residencStatus,
+    residentStatus: m.residentStatus,
     informationStatus: undefined // ResidentMember does not have this, set undefined
   }))
 

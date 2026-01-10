@@ -187,7 +187,6 @@ export const TempResidentCard = ({ tempRes, onEdit, onDelete, onDeleteSuccess }:
           <MemberInfo label="Quê quán" value={<span className="font-semibold">{residentData?.placeOfOrigin ?? "-"}</span>} />
           {residentData?.email && <MemberInfo label="Email" value={<span className="font-semibold">{residentData?.email}</span>} />}
           <MemberInfo label="SĐT" value={<span className="font-semibold">{residentData?.phoneNumber ?? "-"}</span>} />
-          <MemberInfo label="Địa chỉ (đến)" value={<span className="font-semibold">{destination ?? "-"}</span>} />
           <MemberInfo label="Ngày bắt đầu" value={<span className="font-semibold">{formatDate(startDate)}</span>} />
           <MemberInfo label="Ngày kết thúc" value={<span className="font-semibold">{formatDate(endDate)}</span>} />
           <MemberInfo label="Lý do" value={<span className="font-semibold">{reason ?? "-"}</span>} colSpan />

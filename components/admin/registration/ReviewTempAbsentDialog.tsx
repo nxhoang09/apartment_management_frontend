@@ -139,19 +139,6 @@ export function ReviewTempAbsentDialog({ open, registrationId, onClose, onUpdate
               </div>
             </div>
 
-            <div className="my-2 border-t border-slate-100" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <div className="text-xs text-muted-foreground">Ngày bắt đầu</div>
-                <div className="font-medium">{detail?.startDate ? format(new Date(detail.startDate), "dd/MM/yyyy") : "-"}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Ngày kết thúc</div>
-                <div className="font-medium">{detail?.endDate ? format(new Date(detail.endDate), "dd/MM/yyyy") : "-"}</div>
-              </div>
-            </div>
-
             <div className="mt-3">
               <div className="text-xs text-muted-foreground">Lý do</div>
               <div className="font-medium">{detail?.reason ?? "-"}</div>

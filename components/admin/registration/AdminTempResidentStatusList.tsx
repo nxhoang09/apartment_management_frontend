@@ -110,7 +110,7 @@ export function AdminTempResidentStatusList({ status, title, showActions = false
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">{title} ({totalCount})</CardTitle>
+        <CardTitle className="text-xl">{title}</CardTitle>
       </CardHeader>
       <CardContent>
         {loading && <div>Đang tải...</div>}

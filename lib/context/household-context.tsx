@@ -29,7 +29,7 @@ export interface ResidentMember {
   placeOfOrigin: string
   occupation: string
   workingAdress: string
-  residencStatus: string
+  residentStatus: string
   houseHoldId: number
 }
 
