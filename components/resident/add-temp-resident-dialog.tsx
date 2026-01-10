@@ -132,6 +132,54 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
     return obj
   }
 
+  const extractErrorMeta = (err: unknown) => {
+    const e: any = err ?? {}
+    const status = e?.status ?? e?.response?.status ?? e?.statusCode
+    const serverMessage = e?.response?.data?.message ?? e?.message ?? e?.response?.data?.error ?? e?.response?.data
+    const normalizedMessage = Array.isArray(serverMessage) ? serverMessage[0] : serverMessage
+    const message = typeof normalizedMessage === "string" ? normalizedMessage : undefined
+    return { status, message }
+  }
+
+  const getFriendlyErrorMessage = (err: unknown, fallback: string) => {
+    const { status, message } = extractErrorMeta(err)
+    const normalized = (message ?? "").toLowerCase()
+
+    if (status === 401 || /unauthoriz/i.test(normalized)) {
+      return "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+    }
+
+    if (status === 403) {
+      return "Bạn không có quyền thực hiện hành động này."
+    }
+
+    if (status === 409 || /conflict/.test(normalized) || (/khai\s*b[aả]o/.test(normalized) && /trước/.test(normalized))) {
+      return "Cư dân đã có khai báo trước đó."
+    }
+
+    if (/permanent\s+residence/.test(normalized)) {
+      return "Cư dân này đã có đăng ký thường trú."
+    }
+
+    if (/temporary\s+resident|temp_resident/.test(normalized)) {
+      return "Cư dân này đã được khai báo tạm trú."
+    }
+
+    if (/temporarily\s+absent|temp_absent/.test(normalized)) {
+      return "Cư dân này đang trong thời gian tạm vắng."
+    }
+
+    if (/network/.test(normalized)) {
+      return "Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại."
+    }
+
+    if (message) {
+      return message
+    }
+
+    return fallback
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
@@ -219,23 +267,7 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
         onOpenChange(false)
       }, 800)
     } catch (err) {
-      // Map backend 409 / conflict errors to a friendly, localized message.
-      let friendly = "Lỗi khi gửi khai báo tạm trú"
-      try {
-        const e = err as any
-        const status = e?.status ?? e?.response?.status ?? e?.statusCode
-        const msg = (e?.message ?? String(e ?? "")).toString()
-
-        if (status === 409 || /409/.test(msg) || /conflict/i.test(msg) || (/khai\s*b[aả]o/i.test(msg) && /trước/i.test(msg))) {
-          friendly = "Cư dân đã có khai báo trước đó"
-        } else if (msg) {
-          friendly = msg
-        }
-      } catch (e) {
-        // ignore parsing errors
-      }
-
-      setError(friendly)
+      setError(getFriendlyErrorMessage(err, "Lỗi khi gửi khai báo tạm trú"))
     } finally {
       setIsLoading(false)
     }
@@ -302,32 +334,36 @@ export function AddTempResidentDialog({ open, onOpenChange, members, initialNati
         setForm((s) => ({ ...s, nationalId }))
       }
     } catch (err) {
-      // Handle 404 and other errors - show form to create new resident
-      const errorMessage = err instanceof Error ? err.message : "Lỗi khi tìm cư dân"
-      console.log("[DEBUG] Search error:", errorMessage)
-      
-      // Check for specific conflict errors from backend
-      const errMsg = String(errorMessage).toLowerCase()
-      if (errMsg.includes("permanent residence")) {
-        setSearchError(`This resident already has permanent residence registration.`)
+      const { status, message } = extractErrorMeta(err)
+      const normalized = (message ?? "").toLowerCase()
+
+      if (status === 404 || /not\s+found/.test(normalized)) {
+        setSearchError(`Không tìm thấy cư dân với CMND/CCCD: ${nationalId}. Vui lòng nhập thông tin để tạo mới.`)
+        setCreatingResident(true)
+        setForm((s) => ({ ...s, nationalId }))
         setSearchLoading(false)
         return
       }
-      if (errMsg.includes("temporary resident") || errMsg.includes("temp_resident")) {
-        setSearchError(`This resident is already registered as a temporary resident.`)
+
+      if (status === 409 || /permanent\s+residence/.test(normalized)) {
+        setSearchError("Cư dân đã có hồ sơ thường trú.")
         setSearchLoading(false)
         return
       }
-      if (errMsg.includes("temporarily absent") || errMsg.includes("temp_absent")) {
-        setSearchError(`This resident is currently registered as temporarily absent.`)
+
+      if (/temporary\s+resident|temp_resident/.test(normalized)) {
+        setSearchError("Cư dân đã được đăng ký tạm trú trước đó.")
         setSearchLoading(false)
         return
       }
-      
-      // If 404 or resident not found, allow creating new resident
-      setSearchError(`Resident not found with ID: ${nationalId}. Please enter information to create a new resident.`)
-      setCreatingResident(true)
-      setForm((s) => ({ ...s, nationalId }))
+
+      if (/temporarily\s+absent|temp_absent/.test(normalized)) {
+        setSearchError("Cư dân hiện đang trong danh sách tạm vắng.")
+        setSearchLoading(false)
+        return
+      }
+
+      setSearchError(getFriendlyErrorMessage(err, "Lỗi khi tìm cư dân. Vui lòng thử lại."))
     } finally {
       setSearchLoading(false)
     }

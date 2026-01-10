@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,14 +35,58 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
 
+  const memberValidationMessages = useMemo(() => ([
+    { pattern: /phonenumber should not be empty/i, message: "Vui lòng nhập số điện thoại." },
+    { pattern: /email should not be empty/i, message: "Vui lòng nhập email." },
+    { pattern: /email must be an email/i, message: "Email không đúng định dạng." },
+    { pattern: /relationshiptohead must be one of/i, message: "Vui lòng chọn quan hệ với chủ hộ hợp lệ." },
+    { pattern: /placeoforigin should not be empty/i, message: "Vui lòng nhập quê quán." },
+    { pattern: /occupation should not be empty/i, message: "Vui lòng nhập nghề nghiệp." },
+    { pattern: /workingadress should not be empty/i, message: "Vui lòng nhập nơi làm việc." },
+  ]), [])
+
+  const getFriendlyMemberError = (err: unknown) => {
+    const e: any = err ?? {}
+    const payload = e?.response?.data
+    const raw = payload?.message ?? payload?.error ?? e?.message ?? (typeof err === "string" ? err : "")
+    const message = Array.isArray(raw) ? raw.join(", ") : String(raw || "")
+    if (!message) {
+      return "Không thể thêm thành viên. Vui lòng kiểm tra lại thông tin."
+    }
+
+    const matched = memberValidationMessages
+      .filter((item) => item.pattern.test(message))
+      .map((item) => item.message)
+
+    if (matched.length > 0) {
+      return matched.join(" ")
+    }
+
+    return message
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setSuccess("")
     setIsLoading(true)
 
+    const payload = {
+      ...formData,
+      fullname: formData.fullname.trim(),
+      nationalId: formData.nationalId.trim(),
+      dateOfBirth: formData.dateOfBirth,
+      gender: formData.gender,
+      relationshipToHead: formData.relationshipToHead,
+      phoneNumber: formData.phoneNumber.trim(),
+      email: formData.email.trim(),
+      placeOfOrigin: formData.placeOfOrigin.trim(),
+      occupation: formData.occupation.trim(),
+      workingAdress: formData.workingAdress.trim(),
+    }
+
     try {
-      await addMember(formData)
+      await addMember(payload)
       setSuccess(`${formData.fullname} đã được thêm vào hộ khẩu.`)
 
       // Reset form và đóng dialog sau 1s
@@ -62,8 +106,8 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
         onOpenChange(false)
       }, 1000)
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Lỗi khi thêm thành viên"
-      setError(`${message}`)
+      const message = getFriendlyMemberError(err)
+      setError(message)
     } finally {
       setIsLoading(false)
     }
@@ -167,6 +211,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
               <Label htmlFor="phoneNumber">Số điện thoại</Label>
               <Input
                 id="phoneNumber"
+                required
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
               />
@@ -176,6 +221,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
               <Input
                 id="email"
                 type="email"
+                required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
@@ -187,6 +233,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
             <Label htmlFor="placeOfOrigin">Quê quán</Label>
             <Input
               id="placeOfOrigin"
+              required
               value={formData.placeOfOrigin}
               onChange={(e) => setFormData({ ...formData, placeOfOrigin: e.target.value })}
             />
@@ -198,6 +245,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
               <Label htmlFor="occupation">Nghề nghiệp</Label>
               <Input
                 id="occupation"
+                required
                 value={formData.occupation}
                 onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
               />
@@ -206,6 +254,7 @@ export function AddMemberDialog({ open, onOpenChange }: AddMemberDialogProps) {
               <Label htmlFor="workingAdress">Nơi làm việc</Label>
               <Input
                 id="workingAdress"
+                required
                 value={formData.workingAdress}
                 onChange={(e) => setFormData({ ...formData, workingAdress: e.target.value })}
               />

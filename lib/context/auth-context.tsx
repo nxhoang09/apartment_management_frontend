@@ -23,6 +23,53 @@ interface AuthContextType {
   isLoading: boolean
 }
 
+type FriendlyOverride = Partial<Record<"unauthorized" | "forbidden" | "notFound" | "conflict", string>>
+
+const extractErrorMeta = (err: unknown) => {
+  const error: any = err ?? {}
+  const status = error?.status ?? error?.response?.status ?? error?.statusCode
+  const payload = error?.response?.data
+  const messageSource = payload?.message ?? payload?.error ?? error?.message ?? (typeof err === "string" ? err : undefined)
+  const normalizedSource = Array.isArray(messageSource) ? messageSource[0] : messageSource
+  const message = typeof normalizedSource === "string" ? normalizedSource : undefined
+  return { status, message }
+}
+
+const getFriendlyErrorMessage = (err: unknown, fallback: string, overrides: FriendlyOverride = {}) => {
+  const { status, message } = extractErrorMeta(err)
+  const normalized = (message ?? "").toLowerCase()
+
+  if (/failed to fetch|network error|network request failed/.test(normalized)) {
+    return "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng và thử lại."
+  }
+
+  if (status === 401 || /unauthoriz|invalid credential|sai\s+mat\s+khau/.test(normalized)) {
+    return overrides.unauthorized || "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."
+  }
+
+  if (status === 403 || /forbidden|không\s+có\s+quyền/.test(normalized)) {
+    return overrides.forbidden || "Bạn không có quyền thực hiện hành động này."
+  }
+
+  if (status === 404 || /not\s+found|không\s+tìm\s+thấy/.test(normalized)) {
+    return overrides.notFound || "Không tìm thấy dữ liệu phù hợp."
+  }
+
+  if (status === 409 || /conflict|đã\s+tồn\s+tại/.test(normalized)) {
+    return overrides.conflict || "Dữ liệu đã tồn tại."
+  }
+
+  if (/password/.test(normalized) && /match|không\s+khớp/.test(normalized)) {
+    return "Mật khẩu nhập vào không hợp lệ."
+  }
+
+  if (message) {
+    return message
+  }
+
+  return fallback
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -62,11 +109,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true)
-      const data = await postJSON("/auth/signin", { email, password })
-      setUser(data.data.user)
-      setToken(data.data.accessToken)
+      const response = await postJSON("/auth/signin", { email, password })
+      const payload = response?.data ?? response
+      const authenticatedUser = payload?.user
+      const accessToken = payload?.accessToken
 
-      switch (data.data.user.role) {
+      if (!authenticatedUser || !accessToken) {
+        throw new Error("Không thể lấy thông tin đăng nhập từ máy chủ.")
+      }
+
+      setUser(authenticatedUser)
+      setToken(accessToken)
+
+      switch (authenticatedUser.role) {
         case "ADMIN":
           router.push("/admin")
           break
@@ -81,7 +136,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error: any) {
       console.error("Login error:", error)
-      throw new Error(error.message || "Đăng nhập thất bại")
+      const friendly = getFriendlyErrorMessage(error, "Đăng nhập thất bại. Vui lòng thử lại.", {
+        unauthorized: "Email hoặc mật khẩu chưa chính xác.",
+        notFound: "Không tìm thấy tài khoản với thông tin này."
+      })
+      throw new Error(friendly)
     } finally {
       setIsLoading(false)
     }
@@ -106,7 +165,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("forgot password:", data.data)
     } catch (error: any) {
       console.error("Forgot password error:", error)
-      throw new Error(error.message || "Không thể gửi email khôi phục mật khẩu")
+      const friendly = getFriendlyErrorMessage(error, "Không thể gửi email khôi phục mật khẩu.", {
+        notFound: "Không tìm thấy tài khoản với email này."
+      })
+      throw new Error(friendly)
     } finally {
       setIsLoading(false)
     }
@@ -119,7 +181,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("Reset password:", data.data)
     } catch (error: any) {
       console.error("Reset password error:", error)
-      throw new Error(error.message || "Đặt lại mật khẩu thất bại")
+      const friendly = getFriendlyErrorMessage(error, "Đặt lại mật khẩu thất bại.", {
+        unauthorized: "Liên kết đặt lại mật khẩu đã hết hạn hoặc không hợp lệ."
+      })
+      throw new Error(friendly)
     } finally {
       setIsLoading(false)
     }
@@ -133,7 +198,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return data.data
     } catch (error: any) {
       console.error("Verify token error:", error)
-      throw new Error(error.message || "Token không hợp lệ hoặc đã hết hạn")
+      const friendly = getFriendlyErrorMessage(error, "Token không hợp lệ hoặc đã hết hạn.", {
+        unauthorized: "Liên kết đặt lại đã hết hạn, vui lòng yêu cầu lại email khôi phục.",
+        notFound: "Không tìm thấy thông tin xác thực của liên kết này."
+      })
+      throw new Error(friendly)
     } finally {
       setIsLoading(false)
     }
