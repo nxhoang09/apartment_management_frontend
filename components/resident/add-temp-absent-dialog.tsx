@@ -63,8 +63,8 @@ export function AddTempAbsentDialog({ open, onOpenChange, members, onAdded }: Ad
       residentId: Number(selected),
       startDate: s.toISOString(),
       endDate: eDate.toISOString(),
-      reason: reason || undefined,
-      destination: destination || undefined,
+      reason: reason.trim() || undefined,
+      destination: destination.trim() || undefined,
     }
 
     setIsLoading(true)
@@ -79,17 +79,17 @@ export function AddTempAbsentDialog({ open, onOpenChange, members, onAdded }: Ad
       setDestination("")
       setReason("")
     } catch (err) {
-      // Map backend 409 / conflict errors to a friendly, localized message.
       let friendly = "Lỗi khi tạo khai báo tạm vắng"
       try {
         const e = err as any
         const status = e?.status ?? e?.response?.status ?? e?.statusCode
         const msg = (e?.message ?? String(e ?? "")).toString()
 
-        if (status === 409 || /409/.test(msg) || /conflict/i.test(msg) || /khai\s*b[aả]o/i.test(msg) && /trước/i.test(msg)) {
+        if (status === 409 || /409/.test(msg) || /conflict/i.test(msg) || (/khai\s*b[aả]o/i.test(msg) && /trước/i.test(msg))) {
           friendly = "Cư dân đã có khai báo trước đó"
+        } else if (/destination/.test(msg)) {
+          friendly = "Vui lòng nhập nơi đến hợp lệ."
         } else if (msg) {
-          // Prefer server-provided message when available
           friendly = msg
         }
       } catch (e) {

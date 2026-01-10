@@ -121,10 +121,16 @@ export function AdminSidebar({ onCollapseChange }: { onCollapseChange?: (collaps
           </nav>
 
           {/* Footer */}
-          <div className=" py-4 pr-2 border-t border-border flex justify-center  ">
-           <Button variant="ghost" size="lg" onClick={logout}>
-              <LogOut className="h-4 w-4 mr-2" />
-                Đăng xuất
+          <div className="py-4 px-2 border-t border-border flex justify-center">
+            <Button
+              variant="ghost"
+              size={collapsed ? "icon" : "lg"}
+              className={cn("w-full", collapsed ? "justify-center" : "justify-center gap-2")}
+              onClick={logout}
+            >
+              <LogOut className={cn("h-4 w-4", !collapsed && "mr-2")}
+              />
+              {!collapsed && <span>Đăng xuất</span>}
             </Button>
           </div>
         </div>

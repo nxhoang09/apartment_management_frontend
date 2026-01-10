@@ -31,18 +31,45 @@ export async function apiRequest(
   try {
     json = await res.json()
   } catch (err) {
-    // ignore json parse errors
+
   }
 
   if (!res.ok) {
     if (res.status === 401) {
-      const res = await fetch(`${API_URL}/auth/refresh`)
-      console.log(res)
-      const message = (json && (json.message || json.error)) || "Không có quyền (401). Vui lòng đăng nhập lại."
-      throw new Error(message)
+      try {
+        const refreshRes = await fetch(`${API_URL}/auth/refresh`, {
+          method: "POST", 
+          headers: { "Content-Type": "application/json" },
+          credentials: "include", 
+        });
+
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          const newAccessToken = refreshData.accessToken;
+
+          console.log(">> Refresh token thành công, đang thử lại request cũ...");
+
+          const newHeaders = { ...headers, Authorization: `Bearer ${newAccessToken}` };
+          
+         
+          const retryRes = await fetch(`${API_URL}${url}`, {
+            ...options,
+            headers: newHeaders,
+          });
+          return await retryRes.json();
+        } else {
+            console.error(">> Refresh token thất bại (Cookie hết hạn hoặc không hợp lệ)");
+        }
+      } catch (error) {
+        console.error(">> Lỗi khi gọi refresh token:", error);
+      }
+      
+      const message = (json && (json.message || json.error)) || "Phiên đăng nhập hết hạn.";
+      throw new Error(message);
     }
-    const message = (json && (json.message || json.error)) || "Yêu cầu thất bại"
-    throw new Error(message)
+
+    const message = (json && (json.message || json.error)) || "Yêu cầu thất bại";
+    throw new Error(message);
   }
 
   return json
