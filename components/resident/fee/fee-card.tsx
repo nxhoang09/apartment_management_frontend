@@ -82,6 +82,14 @@ export function FeeCard({ item, type, onPaymentClick }: FeeCardProps) {
                   </div>
                 )}
               </div>
+              
+              {/* Lý do từ chối - hiển thị khi bị từ chối */}
+              {isRejected && item.Payment?.note && (
+                <div className="mt-2 rounded-md bg-destructive/10 px-3 py-2 text-sm">
+                  <span className="font-medium text-destructive">Lý do từ chối: </span>
+                  <span className="text-destructive/90">{item.Payment.note}</span>
+                </div>
+              )}
             </div>
 
             {/* --- Phần Giá tiền & Action --- */}

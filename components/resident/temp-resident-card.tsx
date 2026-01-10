@@ -47,8 +47,8 @@ export const TempResidentCard = ({ tempRes, onEdit, onDelete, onDeleteSuccess }:
   const openConfirm = () => {
     const ta = (tempRes as any).TemporaryAbsence?.[0]
     const status = ta?.informationStatus ?? (tempRes as any).informationStatus
-    if (status === "APPROVED") {
-      setConfirmError("Không thể xóa đăng ký đã được xác nhận")
+    if (status === "APPROVED" || status === "REJECTED") {
+      setConfirmError("Không thể xóa đơn khai báo đã được admin duyệt hoặc từ chối")
       setConfirmOpen(true)
       return
     }
@@ -108,6 +108,7 @@ export const TempResidentCard = ({ tempRes, onEdit, onDelete, onDeleteSuccess }:
   let reason = (tempRes as any).reason
   let infoStatus = tempRes.informationStatus
   let destination = (tempRes as any).address
+  let rejectReason = (tempRes as any).rejectReason
 
   if (!residentData && (tempRes as any).TemporaryAbsence) {
     // build resident object from top-level fields
@@ -130,6 +131,7 @@ export const TempResidentCard = ({ tempRes, onEdit, onDelete, onDeleteSuccess }:
     reason = ta?.reason
     destination = ta?.destination ?? destination
     infoStatus = ta?.informationStatus ?? infoStatus
+    rejectReason = ta?.rejectReason ?? rejectReason
   }
 
   return (
@@ -161,7 +163,7 @@ export const TempResidentCard = ({ tempRes, onEdit, onDelete, onDeleteSuccess }:
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
-              disabled={isDeleting}
+              disabled={isDeleting || infoStatus === "APPROVED" || infoStatus === "REJECTED"}
             >
               <Edit className="h-4 w-4" />
             </Button>
@@ -171,7 +173,7 @@ export const TempResidentCard = ({ tempRes, onEdit, onDelete, onDeleteSuccess }:
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-              disabled={isDeleting}
+              disabled={isDeleting || infoStatus === "APPROVED" || infoStatus === "REJECTED"}
             >
               {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
             </Button>
@@ -190,6 +192,13 @@ export const TempResidentCard = ({ tempRes, onEdit, onDelete, onDeleteSuccess }:
           <MemberInfo label="Ngày bắt đầu" value={<span className="font-semibold">{formatDate(startDate)}</span>} />
           <MemberInfo label="Ngày kết thúc" value={<span className="font-semibold">{formatDate(endDate)}</span>} />
           <MemberInfo label="Lý do" value={<span className="font-semibold">{reason ?? "-"}</span>} colSpan />
+          {infoStatus === "REJECTED" && rejectReason && (
+            <MemberInfo 
+              label="Lý do từ chối" 
+              value={<span className="font-semibold text-destructive">{rejectReason}</span>} 
+              colSpan 
+            />
+          )}
         </div>
       </CardContent>
         <ConfirmDeleteTempResident
@@ -198,7 +207,7 @@ export const TempResidentCard = ({ tempRes, onEdit, onDelete, onDeleteSuccess }:
           onConfirm={handleConfirmDelete}
           loading={isDeleting}
           error={confirmError}
-          allowDelete={infoStatus !== "APPROVED"}
+          allowDelete={infoStatus !== "APPROVED" && infoStatus !== "REJECTED"}
         />
     </Card>
   );

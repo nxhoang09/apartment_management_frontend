@@ -53,8 +53,8 @@ export default function RegistrationsPage() {
     // Normalize shape: Temp-absent responses may carry TemporaryAbsence array
     const ta = (temp as any).TemporaryAbsence?.[0]
     const status = ta?.informationStatus ?? (temp as any).informationStatus
-    if (status === "APPROVED" || String(status).toUpperCase() === "ENDED") {
-      setBlockedMessage("Cư dân này đã có khai báo được phê duyệt hoặc đã kết thúc — không thể sửa.")
+    if (status === "APPROVED" || status === "REJECTED" || String(status).toUpperCase() === "ENDED") {
+      setBlockedMessage("Không thể sửa đơn khai báo đã được admin duyệt hoặc từ chối")
       setBlockedDialogOpen(true)
       return
     }

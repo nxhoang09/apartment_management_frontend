@@ -557,7 +557,7 @@ export default function Fees2Page() {
       setDialogOpen(false)
       await loadFees()
     } catch (err: any) {
-      // Silent fail
+      alert(err?.message || "Lỗi khi tạo phí. Vui lòng thử lại.")
     } finally {
       setLoading(false)
     }
@@ -1382,7 +1382,7 @@ export default function Fees2Page() {
 
         {/* Payment Detail Dialog */}
         <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Chi tiết thanh toán</DialogTitle>
               <DialogDescription>
