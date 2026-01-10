@@ -36,13 +36,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch(`${API_URL}/auth/refresh`, {
           method: "POST",
+          headers: {
+             "Content-Type": "application/json",
+          },
           credentials: "include",
         })
         if (!res.ok) throw new Error("Phiên đăng nhập hết hạn")
 
-        const data = await res.json()
-        setToken(data.data.accessToken)
-        setUser(data.data.user)
+        const json = await res.json()
+        const payload = json.data || json 
+
+        setToken(payload.accessToken)
+        setUser(payload.user)
       } catch (err) {
         console.error("Auth init failed:", err)
         setUser(null)

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react"
 import { adminGetAllHouseholds } from "@/lib/api/api"
-import { useAuth } from "./auth-context" // Giả sử path này đúng
+import { useAuth } from "./auth-context" 
 import { io, Socket } from "socket.io-client"
 
 interface PaginationMeta {
@@ -74,7 +74,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!token) return
 
-    const socket: Socket = io("http://localhost:3000/admin", {
+    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
+    const socket: Socket = io(`${baseApiUrl}/admin`, {
       auth: { token }, 
       transports: ["websocket"], 
     })
